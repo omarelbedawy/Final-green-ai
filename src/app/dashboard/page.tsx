@@ -12,6 +12,8 @@ import { useSearchParams } from 'next/navigation';
 import { DiseaseDiagnosisCard } from '@/components/disease-diagnosis-card';
 import { AgriChatbot } from '@/components/agri-chatbot';
 import type { DiagnosePlantOutput } from '@/ai/types';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     const [conditions, setConditions] = useState<GeneratePlantConditionsOutput | null>(null);
@@ -88,21 +90,16 @@ function RealTimeMonitoring() {
         moisture: 35, // Out of range
         light: 12000, // Out of range
         gas: 50, // In range
-        irrigation: true, // On
-        nightLight: false, // Off
     };
+    
+    const [irrigationOn, setIrrigationOn] = useState(true);
+    const [nightLightOn, setNightLightOn] = useState(false);
 
     const StatusIndicator = ({ inRange }: { inRange: boolean }) => {
         return (
             <span className={`h-3 w-3 rounded-full ${inRange ? 'bg-green-500' : 'bg-red-500'}`}></span>
         );
     };
-    
-    const SystemStatusIndicator = ({ isActive }: { isActive: boolean }) => {
-        return (
-             <span className={`font-bold ${isActive ? 'text-green-500' : 'text-muted-foreground'}`}>{isActive ? 'On' : 'Off'}</span>
-        )
-    }
 
     return (
         <Card className="shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -111,7 +108,7 @@ function RealTimeMonitoring() {
                     <Leaf className="text-primary" />
                     Real-Time Monitoring
                 </CardTitle>
-                <CardDescription>Live data from your ESP32-CAM sensors.</CardDescription>
+                <CardDescription>Live data & controls for your ESP32.</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <div className="flex items-center gap-3">
@@ -134,13 +131,19 @@ function RealTimeMonitoring() {
                     <Wind className="text-primary"/>
                     <p>Gas: <span className="font-bold">{readings.gas} ppm</span></p>
                 </div>
-                 <div className="flex items-center gap-3">
-                    <Power className="text-primary"/>
-                    <p>Auto Irrigation: <SystemStatusIndicator isActive={readings.irrigation} /></p>
+                 <div className="flex items-center justify-between col-span-2 sm:col-span-1">
+                    <Label htmlFor="auto-irrigation" className="flex items-center gap-3 cursor-pointer">
+                        <Power className="text-primary"/>
+                        <p>Auto Irrigation</p>
+                    </Label>
+                    <Switch id="auto-irrigation" checked={irrigationOn} onCheckedChange={setIrrigationOn} />
                 </div>
-                <div className="flex items-center gap-3">
-                    <MoonStar className="text-primary"/>
-                    <p>Night Lighting: <SystemStatusIndicator isActive={readings.nightLight} /></p>
+                <div className="flex items-center justify-between col-span-2 sm:col-span-1">
+                     <Label htmlFor="night-lighting" className="flex items-center gap-3 cursor-pointer">
+                        <MoonStar className="text-primary"/>
+                        <p>Night Lighting</p>
+                    </Label>
+                    <Switch id="night-lighting" checked={nightLightOn} onCheckedChange={setNightLightOn} />
                 </div>
                  <p className="text-xs col-span-2 text-center pt-4 text-muted-foreground">[Displaying dummy data. Awaiting real data from ESP32]</p>
             </CardContent>
