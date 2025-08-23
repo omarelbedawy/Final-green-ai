@@ -33,7 +33,7 @@ export function PlantForm() {
     <Card className="w-full max-w-md mx-auto shadow-lg bg-card border-none">
       <CardHeader className="text-center p-8">
         <div className="flex items-center justify-center gap-3 mb-2">
-          <Logo className="w-10 h-10 text-primary" />
+          <Logo className="w-10 h-10" />
           <h1 className="text-5xl font-headline font-bold text-foreground">Green-AI</h1>
         </div>
         <CardDescription className="text-base text-muted-foreground">

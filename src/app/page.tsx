@@ -28,7 +28,7 @@ export default function WelcomePage() {
               : 'scale-50 -translate-y-16 animate-logo-shrink'
           }`}
         >
-          <Logo className="w-48 h-48 text-primary" />
+          <Logo className="w-48 h-48" />
         </div>
 
         <div

@@ -143,7 +143,7 @@ function DashboardPageContent() {
          <header className="bg-background shadow-md">
             <div className="container mx-auto p-4 flex justify-between items-center">
                  <div className="flex items-center gap-4">
-                    <Logo className="w-10 h-10 text-primary" />
+                    <Logo className="w-10 h-10" />
                     <div>
                         <h1 className="text-3xl font-headline font-extrabold text-foreground tracking-tight">Green-AI</h1>
                         <p className="text-sm text-muted-foreground">Your Automated Plant Care Dashboard</p>

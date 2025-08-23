@@ -12,7 +12,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
            <div className="flex items-center justify-center gap-3 mb-2">
-                <Logo className="w-8 h-8 text-primary" />
+                <Logo className="w-8 h-8" />
                 <h1 className="text-4xl font-headline font-bold text-foreground">Green-AI</h1>
             </div>
           <CardTitle>Sign Up</CardTitle>
