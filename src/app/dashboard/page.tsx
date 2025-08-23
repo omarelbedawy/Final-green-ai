@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
 import { generatePlantConditions, type GeneratePlantConditionsOutput } from '@/ai/flows/generate-plant-conditions';
 import { ConditionsDashboard, ConditionsSkeleton } from '@/components/conditions-dashboard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertTriangle, Wifi, Thermometer, Droplets, Lightbulb, Wind, Leaf } from 'lucide-react';
+import { AlertTriangle, Wifi, Thermometer, Droplets, Lightbulb, Wind, Leaf, Power, MoonStar } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useSearchParams } from 'next/navigation';
 import { DiseaseDiagnosisCard } from '@/components/disease-diagnosis-card';
@@ -87,14 +88,21 @@ function RealTimeMonitoring() {
         moisture: 35, // Out of range
         light: 12000, // Out of range
         gas: 50, // In range
+        irrigation: true, // On
+        nightLight: false, // Off
     };
 
-    const StatusIndicator = ({ reading, range }: { reading: number, range: { min: number, max: number } }) => {
-        const inRange = reading >= range.min && reading <= range.max;
+    const StatusIndicator = ({ inRange }: { inRange: boolean }) => {
         return (
             <span className={`h-3 w-3 rounded-full ${inRange ? 'bg-green-500' : 'bg-red-500'}`}></span>
         );
     };
+    
+    const SystemStatusIndicator = ({ isActive }: { isActive: boolean }) => {
+        return (
+             <span className={`font-bold ${isActive ? 'text-green-500' : 'text-muted-foreground'}`}>{isActive ? 'On' : 'Off'}</span>
+        )
+    }
 
     return (
         <Card className="shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -107,24 +115,32 @@ function RealTimeMonitoring() {
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <div className="flex items-center gap-3">
-                    <StatusIndicator reading={readings.temp} range={idealRanges.temp} />
+                    <StatusIndicator inRange={readings.temp >= idealRanges.temp.min && readings.temp <= idealRanges.temp.max} />
                     <Thermometer className="text-primary"/>
                     <p>Temp: <span className="font-bold">{readings.temp}°C</span></p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <StatusIndicator reading={readings.moisture} range={idealRanges.moisture} />
+                    <StatusIndicator inRange={readings.moisture >= idealRanges.moisture.min && readings.moisture <= idealRanges.moisture.max} />
                     <Droplets className="text-primary"/>
                     <p>Moisture: <span className="font-bold">{readings.moisture}%</span></p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <StatusIndicator reading={readings.light} range={idealRanges.light} />
+                    <StatusIndicator inRange={readings.light >= idealRanges.light.min && readings.light <= idealRanges.light.max} />
                     <Lightbulb className="text-primary"/>
                     <p>Light: <span className="font-bold">{readings.light} lux</span></p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <StatusIndicator reading={readings.gas} range={idealRanges.gas} />
+                    <StatusIndicator inRange={readings.gas >= idealRanges.gas.min && readings.gas <= idealRanges.gas.max} />
                     <Wind className="text-primary"/>
                     <p>Gas: <span className="font-bold">{readings.gas} ppm</span></p>
+                </div>
+                 <div className="flex items-center gap-3">
+                    <Power className="text-primary"/>
+                    <p>Auto Irrigation: <SystemStatusIndicator isActive={readings.irrigation} /></p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <MoonStar className="text-primary"/>
+                    <p>Night Lighting: <SystemStatusIndicator isActive={readings.nightLight} /></p>
                 </div>
                  <p className="text-xs col-span-2 text-center pt-4 text-muted-foreground">[Displaying dummy data. Awaiting real data from ESP32]</p>
             </CardContent>
@@ -139,7 +155,7 @@ function DashboardPageContent() {
 
 
   return (
-    <div className="min-h-screen bg-muted/40 text-foreground font-body">
+    <div className="min-h-screen bg-muted/40 text-foreground font-body flex flex-col">
          <header className="bg-background shadow-md">
             <div className="container mx-auto p-4 flex justify-between items-center">
                  <div className="flex items-center gap-4">
@@ -151,7 +167,7 @@ function DashboardPageContent() {
                 </div>
             </div>
         </header>
-      <main className="container mx-auto p-4 py-8 md:p-8 space-y-8">
+      <main className="container mx-auto p-4 py-8 md:p-8 space-y-8 flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
                 <ConnectionStatus />
