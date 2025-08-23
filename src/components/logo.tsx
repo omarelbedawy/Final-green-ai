@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { cn } from "@/lib/utils"
 
 export function Logo({ className, withBg = false }: { className?: string, withBg?: boolean }) {
-    const logoUrl = withBg ? '/logo-with-bg.png' : '/logo-no-bg.png';
+    const logoUrl = withBg ? '/logo.png' : '/logo-removebg-preview.png';
     return (
         <div className={cn("relative", className)}>
              <Image
