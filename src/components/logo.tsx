@@ -8,7 +8,7 @@ export function Logo({ className, withBg = false }: { className?: string, withBg
         <div className={cn("relative", className)}>
              <Image
                 src={logoUrl}
-                alt="PlantWise Logo"
+                alt="Green-AI Logo"
                 fill
                 className="object-contain"
                 priority
