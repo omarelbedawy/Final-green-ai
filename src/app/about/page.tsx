@@ -26,12 +26,11 @@ export default function AboutPage() {
       <section>
         <h2 className="text-3xl font-bold mb-6">OUR TEAM</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-          {/* Example: Omar Elbedawy */}
+          {/* Omar Elbedawy */}
           <div className="text-center">
-            {/* Replace 'path-to-omar.jpg' with your image path */}
             <div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
               <Image
-                src="/images/omar.jpg"
+                src="/images/Omar.jpg"
                 alt="Omar Elbedawy"
                 width={128}
                 height={128}
@@ -41,11 +40,11 @@ export default function AboutPage() {
             <p className="font-semibold">Omar Elbedawy</p>
           </div>
 
-          {/* Example: Sameh Hasan */}
+          {/* Sameh Hasan */}
           <div className="text-center">
             <div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
               <Image
-                src="/images/sameh.jpg"
+                src="/images/Sameh.jpg"
                 alt="Sameh Hasan"
                 width={128}
                 height={128}
@@ -55,11 +54,11 @@ export default function AboutPage() {
             <p className="font-semibold">Sameh Hasan</p>
           </div>
 
-          {/* Example: Ahmed Nasef */}
+          {/* Ahmed Nasef */}
           <div className="text-center">
             <div className="w-32 h-32 mx-auto mb-4 rounded-full overflow-hidden bg-gray-200">
               <Image
-                src="/images/ahmed.jpg"
+                src="/images/Ahmedz.jpg"
                 alt="Ahmed Nasef"
                 width={128}
                 height={128}
@@ -69,9 +68,6 @@ export default function AboutPage() {
             <p className="font-semibold">Ahmed Nasef</p>
           </div>
         </div>
-        <p className="mt-8 text-gray-700">
-          *Tip: To add your circular team images, put them in the <code>public/images/</code> folder and reference them with the <code>src</code> attribute in the <code>Image</code> component above.*
-        </p>
       </section>
     </div>
   );
