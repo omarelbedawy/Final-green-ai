@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "slug": "innovate-corp-website",
+    "title": "Innovate Corp Website",
+    "description": "A modern and responsive website for a leading tech company.",
+    "longDescription": "We partnered with Innovate Corp to redesign their corporate website. The goal was to create a modern, user-friendly platform that showcases their innovative products and services. The new site features a clean design, intuitive navigation, and is fully responsive across all devices, resulting in a 40% increase in user engagement.",
+    "image": "https://placehold.co/600x400.png",
+    "category": "Web Design",
+    "technologies": ["Next.js", "Tailwind CSS", "TypeScript"]
+  },
+  {
+    "id": 2,
+    "slug": "aqua-vista-branding",
+    "title": "Aqua Vista Branding",
+    "description": "A complete branding package for a luxury resort and spa.",
+    "longDescription": "For Aqua Vista, we developed a comprehensive brand identity that evokes serenity and luxury. This included logo design, color palette selection, typography, and marketing collateral. The result is a cohesive and elegant brand that resonates with their target audience of high-end travelers.",
+    "image": "https://placehold.co/600x400.png",
+    "category": "Branding",
+    "technologies": ["Adobe Illustrator", "Figma"]
+  },
+  {
+    "id": 3,
+    "slug": "pixel-perfect-posters",
+    "title": "Pixel Perfect Posters",
+    "description": "A series of vibrant posters for a digital art festival.",
+    "longDescription": "We were commissioned to create a series of promotional posters for the annual Pixel Perfect festival. Our design approach used bold colors and abstract geometric shapes to capture the energy and creativity of the event. The posters were widely praised and contributed to a record-breaking attendance.",
+    "image": "https://placehold.co/600x400.png",
+    "category": "Graphic Design",
+    "technologies": ["Adobe Photoshop", "Adobe InDesign"]
+  },
+  {
+    "id": 4,
+    "slug": "e-commerce-evolution",
+    "title": "E-commerce Evolution",
+    "description": "An intuitive e-commerce platform for a fashion startup.",
+    "longDescription": "This project involved building a full-featured e-commerce website from the ground up. We focused on creating a seamless shopping experience with easy navigation, fast load times, and a secure checkout process. The platform is built on a scalable architecture to support the client's future growth.",
+    "image": "https://placehold.co/600x400.png",
+    "category": "Web Design",
+    "technologies": ["Shopify", "React", "GraphQL"]
+  },
+  {
+    "id": 5,
+    "slug": "stellar-solutions-logo",
+    "title": "Stellar Solutions Logo",
+    "description": "A dynamic logo and brand guide for a consulting firm.",
+    "longDescription": "Stellar Solutions needed a brand identity that conveyed trust and expertise. We designed a modern, memorable logo and a comprehensive brand guide to ensure consistency across all their communications. The new branding has helped them stand out in a competitive market.",
+    "image": "https://placehold.co/600x400.png",
+    "category": "Branding",
+    "technologies": ["Figma", "Adobe Illustrator"]
+  },
+  {
+    "id": 6,
+    "slug": "urban-eats-menu-design",
+    "title": "Urban Eats Menu Design",
+    "description": "Eye-catching menu design for a modern downtown restaurant.",
+    "longDescription": "We designed a new menu for Urban Eats that reflects their modern, eclectic cuisine. Using a clean layout, stylish typography, and high-quality imagery, the menu enhances the dining experience and effectively showcases their unique dishes.",
+    "image": "https://placehold.co/600x400.png",
+    "category": "Graphic Design",
+    "technologies": ["Adobe InDesign", "Adobe Photoshop"]
+  }
+]
