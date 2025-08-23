@@ -1,29 +1,21 @@
-
-'use client';
-import { useLocale } from 'next-intl';
-import { notFound } from 'next/navigation';
-import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getRequestConfig } from 'next-intl/server';
 import '../globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/components/theme-provider';
 import { Mail, MessageCircle } from 'lucide-react';
+import { ClientProviders } from '@/components/ClientProviders';
 
+export const config = {
+  //matcher: ['/', '/(en|ar)/:path*'],
+};
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-  params,
+  params: { locale },
 }: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  const locale = useLocale();
-
-  // Show a 404 error if the user requests an unknown locale
-  if (params.locale !== locale) {
-    notFound();
-  }
-  
-  const messages = require(`../../messages/${locale}.json`);
+  const messages = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -40,33 +32,40 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <NextIntlClientProvider locale={locale} messages={messages}>
-            <div className='flex-grow'>
-              {children}
+        <ClientProviders locale={locale} messages={messages}>
+          <div className="flex-grow">{children}</div>
+          <Toaster />
+          <footer className="bg-background border-t py-6">
+            <div className="container mx-auto text-center text-muted-foreground text-sm">
+              <p>&copy; 2025 Green-AI Team. Developer: Omar Elbedawy.</p>
+              <div className="flex justify-center items-center gap-4 mt-4">
+                <a
+                  href="https://wa.me/201503449731"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>+201503449731</span>
+                </a>
+                <a
+                  href="mailto:omar.1824039@stemksheikh.moe.edu.eg"
+                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>STEM Email</span>
+                </a>
+                <a
+                  href="mailto:elbedawyomar2009@gmail.com"
+                  className="flex items-center gap-2 hover:text-primary transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Personal Email</span>
+                </a>
+              </div>
             </div>
-            <Toaster />
-            <footer className="bg-background border-t py-6">
-                <div className="container mx-auto text-center text-muted-foreground text-sm">
-                    <p>&copy; 2025 Green-AI Team. Developer: Omar Elbedawy.</p>
-                    <div className="flex justify-center items-center gap-4 mt-4">
-                        <a href="https://wa.me/201503449731" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary transition-colors">
-                            <MessageCircle className="w-4 h-4" />
-                            <span>+201503449731</span>
-                        </a>
-                        <a href="mailto:omar.1824039@stemksheikh.moe.edu.eg" className="flex items-center gap-2 hover:text-primary transition-colors">
-                           <Mail className="w-4 h-4" />
-                           <span>STEM Email</span>
-                        </a>
-                         <a href="mailto:elbedawyomar2009@gmail.com" className="flex items-center gap-2 hover:text-primary transition-colors">
-                           <Mail className="w-4 h-4" />
-                           <span>Personal Email</span>
-                        </a>
-                    </div>
-                </div>
-            </footer>
-          </NextIntlClientProvider>
-        </ThemeProvider>
+          </footer>
+        </ClientProviders>
       </body>
     </html>
   );
