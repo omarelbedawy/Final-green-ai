@@ -1,20 +1,16 @@
-# **App Name**: Studio Portfolio
+# **App Name**: PlantWise
 
 ## Core Features:
 
-- Continuation from Existing Repo: Build directly on top of the existing repository codebase to ensure all previous setup, structure, and components remain intact.
-- Project Showcase: Display a collection of project cards, each showcasing a project's title, image, and brief description.
-- Project Filtering: Allow users to filter the displayed projects based on categories like 'web design', 'graphic design', or 'branding'.
-- Project Detail View: Provide a detailed view for each project, accessible by clicking on a project card.
-- Case Study Generation: AI tool which leverages the title and description of the work to adapt existing case studies and generate new, unique case studies for the current piece. This will speed up content creation and personalize marketing material.
-- Data Fetching: Fetch project data from local JSON files, ensuring a lightweight and easily maintainable data layer.
+- Plant Name Input: Plant Name Entry: Allow users to enter the name of a plant.
+- Condition Generation: AI-Powered Condition Generation: Use the Gemini API to generate the best growing conditions for the entered plant name. The LLM will tool use to incorporate any available plant data, but will use judgement to limit conditions only to those that are pertinent and likely to affect plant health.
+- Dashboard View: Dashboard Display: Display the AI-generated conditions in a clear and concise dashboard.
 
 ## Style Guidelines:
 
-- Primary color: Rich teal #008080 — conveys sophistication and creativity.
-- Background color: Soft beige #F5F5DC — provides a neutral and calming backdrop to highlight project work.
-- Accent color: Muted gold #B8860B — highlights key elements with elegance.
-- Use Inter, a grotesque-style sans-serif font, for both body text and headlines.
-- Employ a grid-based layout to ensure projects are displayed in a structured, visually appealing manner. Optimize across screen sizes.
-- Use minimalist icons to represent project categories and navigation elements, keeping a clean modern aesthetic.
-- Apply subtle transition effects for polish, especially when navigating between project cards and detail views.
+- Primary color: Soft, natural green (#A7D1AB) to reflect plant life.
+- Background color: Light beige (#F5F5DC) for a clean, earthy feel.
+- Accent color: Warm terracotta (#E07A5F) to highlight important information and calls to action.
+- Font: 'Inter', a sans-serif font for a modern, readable interface, used for both headers and body text.
+- Use simple, line-based icons to represent different growing conditions (sun, water, temperature).
+- Clean and organized layout with a focus on readability and ease of navigation.

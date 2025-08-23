@@ -88,10 +88,25 @@ export default {
             height: '0',
           },
         },
+        'logo-grow': {
+            '0%': { opacity: '0', transform: 'scale(0.75)' },
+            '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'logo-shrink': {
+            '0%': { transform: 'scale(1) translateY(0)' },
+            '100%': { transform: 'scale(0.5) translateY(-4rem)' },
+        },
+        'fade-in': {
+            '0%': { opacity: '0', transform: 'scale(0.95)' },
+            '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'logo-grow': 'logo-grow 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+        'logo-shrink': 'logo-shrink 1s cubic-bezier(0.25, 1, 0.5, 1) forwards',
+        'fade-in': 'fade-in 0.7s ease-out forwards',
       },
     },
   },
