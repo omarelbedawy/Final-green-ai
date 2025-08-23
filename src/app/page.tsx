@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -40,8 +39,8 @@ export default function WelcomePage() {
             <Card className="w-full shadow-lg bg-card/80 backdrop-blur-sm border-primary/20 animate-fade-in">
               <CardHeader className="text-center p-8">
                  <h1 className="text-5xl font-headline font-extrabold text-foreground tracking-tight">Green-AI</h1>
-                <CardDescription className="text-lg text-muted-foreground pt-2">
-                  Welcome! Your AI-powered plant care assistant.
+                <CardDescription className="text-base text-muted-foreground pt-2">
+                  Green-AI is your intelligent partner for plant care. Get optimal growing conditions, monitor your plants in real-time with an ESP32 device, diagnose diseases with a single photo, and chat with our AI expert for any agricultural questions.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0 flex flex-col gap-4">
