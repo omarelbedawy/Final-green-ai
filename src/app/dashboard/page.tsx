@@ -14,19 +14,29 @@ import { AgriChatbot } from '@/components/agri-chatbot';
 import type { DiagnosePlantOutput } from '@/ai/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { updateDeviceControls } from '@/actions/controls';
+
 
 function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     const [conditions, setConditions] = useState<GeneratePlantConditionsOutput | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        generatePlantConditions({ plantName })
-            .then(setConditions)
-            .catch(err => {
-                console.error('Failed to generate plant conditions:', err);
-                setError(`We couldn't generate the growing conditions for "${plantName}". This might be due to an issue with the AI service or an unrecognized plant name. Please try again later or with a different plant.`);
-            });
+        setIsClient(true);
+        if (plantName) {
+            generatePlantConditions({ plantName })
+                .then(setConditions)
+                .catch(err => {
+                    console.error('Failed to generate plant conditions:', err);
+                    setError(`We couldn't generate the growing conditions for "${plantName}". This might be due to an issue with the AI service or an unrecognized plant name. Please try again later or with a different plant.`);
+                });
+        }
     }, [plantName]);
+
+    if (!isClient) {
+        return <ConditionsSkeleton />;
+    }
 
     if (error) {
         return (
@@ -76,7 +86,6 @@ function ConnectionStatus() {
 }
 
 function RealTimeMonitoring() {
-    // Dummy data for demonstration
     const idealRanges = {
         temp: { min: 18, max: 25 },
         moisture: { min: 40, max: 60 },
@@ -84,16 +93,25 @@ function RealTimeMonitoring() {
         gas: { min: 0, max: 100 },
     };
     
-    // Dummy readings for demonstration
     const readings = {
-        temp: 22, // In range
-        moisture: 35, // Out of range
-        light: 12000, // Out of range
-        gas: 50, // In range
+        temp: 22,
+        moisture: 35,
+        light: 12000,
+        gas: 50,
     };
     
     const [irrigationOn, setIrrigationOn] = useState(true);
     const [nightLightOn, setNightLightOn] = useState(false);
+    const deviceId = "ESP_CAM_SMARTGREENHOUSE_001";
+
+    const handleControlChange = async (control: 'autoIrrigation' | 'nightLight', value: boolean) => {
+        if (control === 'autoIrrigation') {
+            setIrrigationOn(value);
+        } else {
+            setNightLightOn(value);
+        }
+        await updateDeviceControls({ deviceId, [control]: value });
+    };
 
     const StatusIndicator = ({ inRange }: { inRange: boolean }) => {
         return (
@@ -136,14 +154,14 @@ function RealTimeMonitoring() {
                         <Power className="text-primary"/>
                         <p>Auto Irrigation</p>
                     </Label>
-                    <Switch id="auto-irrigation" checked={irrigationOn} onCheckedChange={setIrrigationOn} />
+                    <Switch id="auto-irrigation" checked={irrigationOn} onCheckedChange={(value) => handleControlChange('autoIrrigation', value)} />
                 </div>
                 <div className="flex items-center justify-between col-span-2 sm:col-span-1">
                      <Label htmlFor="night-lighting" className="flex items-center gap-3 cursor-pointer">
                         <MoonStar className="text-primary"/>
                         <p>Night Lighting</p>
                     </Label>
-                    <Switch id="night-lighting" checked={nightLightOn} onCheckedChange={setNightLightOn} />
+                    <Switch id="night-lighting" checked={nightLightOn} onCheckedChange={(value) => handleControlChange('nightLight', value)} />
                 </div>
                  <p className="text-xs col-span-2 text-center pt-4 text-muted-foreground">[Displaying dummy data. Awaiting real data from ESP32]</p>
             </CardContent>
