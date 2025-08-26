@@ -4,6 +4,12 @@ import { prisma } from '@/lib/prisma';
 
 // This endpoint allows the ESP32 to upload an image for diagnosis
 export async function POST(request: NextRequest) {
+  // API Key Authentication
+  const apiKey = request.headers.get('x-api-key');
+  if (apiKey !== process.env.ESP_API_KEY) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
   const deviceId = request.headers.get('X-Device-Id');
   if (!deviceId) {
     return NextResponse.json({ error: 'X-Device-Id header is required' }, { status: 400 });
