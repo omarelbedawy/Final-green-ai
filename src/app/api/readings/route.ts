@@ -1,12 +1,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-// Array يخزن كل القراءات اللي اتبعتت
-const readings: any[] = [];
 const readingsByDevice: Record<string, any[]> = {};
 
-
-// POST → يضيف قراءة جديدة
+// Handles POST requests to add a new sensor reading.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -31,16 +28,15 @@ export async function POST(request: NextRequest) {
       growLedState,
       timestamp: new Date().toISOString(),
     };
-    
-    // Store in flat array
-    readings.push(newReading);
 
-    // Store by device ID
     if (!readingsByDevice[deviceId]) {
-        readingsByDevice[deviceId] = [];
+      readingsByDevice[deviceId] = [];
     }
+    // Keep only the last 20 readings for each device to avoid memory issues
     readingsByDevice[deviceId].push(newReading);
-
+    if (readingsByDevice[deviceId].length > 20) {
+        readingsByDevice[deviceId].shift();
+    }
 
     return NextResponse.json(
       { message: "Reading saved successfully", data: newReading },
@@ -55,26 +51,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET → يرجع كل القراءات أو dummy لو مفيش
+// Handles GET requests to retrieve sensor readings for a device.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const deviceId = searchParams.get('deviceId');
 
-  if (deviceId) {
-      const deviceReadings = readingsByDevice[deviceId] || [];
-       if (deviceReadings.length > 0) {
-        return NextResponse.json(deviceReadings);
-      }
-  } else {
-    if (readings.length > 0) {
-      return NextResponse.json(readings);
-    }
+  if (!deviceId) {
+    return NextResponse.json({ error: "Device ID is required in query parameters" }, { status: 400 });
   }
 
-  // Return dummy data only if no readings for the specific device or no readings at all exist
+  const deviceReadings = readingsByDevice[deviceId] || [];
+  
+  if (deviceReadings.length > 0) {
+    // Return all readings for the device
+    return NextResponse.json(deviceReadings);
+  }
+
+  // Return dummy data only if no readings for the specific device exist yet
   return NextResponse.json([
     {
-      deviceId: deviceId || "DUMMY_DEVICE",
+      deviceId: "DUMMY_DEVICE",
       temperature: 25,
       humidity: 60,
       soilMoisture: 40,
