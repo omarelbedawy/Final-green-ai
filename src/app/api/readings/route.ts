@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!deviceId) {
       return NextResponse.json(
-        { error: "Device ID is required" },
+        { error: "Device ID is required in the request body" },
         { status: 400 }
       );
     }
@@ -32,8 +32,9 @@ export async function POST(request: NextRequest) {
     if (!readingsByDevice[deviceId]) {
       readingsByDevice[deviceId] = [];
     }
-    // Keep only the last 20 readings for each device to avoid memory issues
+    
     readingsByDevice[deviceId].push(newReading);
+    // Keep only the last 20 readings for each device to avoid memory issues
     if (readingsByDevice[deviceId].length > 20) {
         readingsByDevice[deviceId].shift();
     }
@@ -62,13 +63,5 @@ export async function GET(request: NextRequest) {
 
   const deviceReadings = readingsByDevice[deviceId] || [];
   
-  if (deviceReadings.length > 0) {
-    // Return all readings for the device if they exist
-    return NextResponse.json(deviceReadings);
-  }
-
-  // If no readings for the specific device exist yet, return an empty array.
-  // The frontend will show a "waiting for data" state.
-  return NextResponse.json([]);
+  return NextResponse.json(deviceReadings);
 }
-
