@@ -126,7 +126,7 @@ Gather your components and wire them according to the circuit diagram. You will 
     - `ArduinoJson` by Benoit Blanchon
     - `DHT sensor library` by Adafruit
 3.  **Load the Code**:
-    - Open the firmware file (`.ino`) provided in this repository.
+    - Open the firmware file (`Espcode/smart-greenhouse-esp32.ino`) provided in this repository.
     - Ensure the following lines are set correctly:
       ```cpp
       const char* backendUrl = "https://final-green-ai.vercel.app";
