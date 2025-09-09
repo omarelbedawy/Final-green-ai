@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { updateDeviceControls } from '@/actions/controls';
 
+const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
 
 function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     const [conditions, setConditions] = useState<GeneratePlantConditionsOutput | null>(null);
@@ -61,7 +62,7 @@ function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     return <ConditionsDashboard conditions={conditions} plantName={plantName} />;
 }
 
-function ConnectionStatus() {
+function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
     return (
         <Card className="shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in">
             <CardHeader>
@@ -74,35 +75,88 @@ function ConnectionStatus() {
             <CardContent>
                 <div className="flex items-center gap-3">
                     <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        {isConnected ? (
+                            <>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </>
+                        )}
                     </span>
-                    <span className="font-semibold text-red-600">Disconnected</span>
+                    <span className={`font-semibold ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+                        {isConnected ? 'Connected' : 'Disconnected'}
+                    </span>
                 </div>
-                 <p className="text-xs text-muted-foreground pt-2">Awaiting connection from ESP32 device.</p>
+                 <p className="text-xs text-muted-foreground pt-2">
+                    {isConnected ? 'Receiving live data.' : 'Awaiting connection from ESP32 device.'}
+                 </p>
             </CardContent>
         </Card>
     )
 }
 
-function RealTimeMonitoring() {
-    const idealRanges = {
-        temp: { min: 18, max: 25 },
-        moisture: { min: 40, max: 60 },
-        light: { min: 5000, max: 10000 },
-        gas: { min: 0, max: 100 },
-    };
-    
-    const readings = {
-        temp: 22,
-        moisture: 35,
-        light: 12000,
-        gas: 50,
-    };
-    
+type Reading = {
+    temperature: number;
+    humidity: number;
+    soilMoisture: number;
+    light: number;
+    mq2: number;
+    pumpState: string;
+    fanState: string;
+    growLedState: string;
+    deviceId: string;
+};
+
+const DUMMY_READING: Reading = {
+      deviceId: "DUMMY_DEVICE",
+      temperature: 25,
+      humidity: 60,
+      soilMoisture: 40,
+      light: 300,
+      mq2: 150,
+      pumpState: "OFF",
+      fanState: "OFF",
+      growLedState: "ON",
+};
+
+
+function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isConnected: boolean) => void }) {
+    const [latestReading, setLatestReading] = useState<Reading>(DUMMY_READING);
+
+    useEffect(() => {
+        const fetchLatestReading = async () => {
+            try {
+                const response = await fetch(`/api/readings?deviceId=${DEVICE_ID}`);
+                if (!response.ok) {
+                    onIsConnectedChange(false);
+                    return;
+                }
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const lastReading = data[data.length - 1];
+                    setLatestReading(lastReading);
+                    onIsConnectedChange(lastReading.deviceId !== 'DUMMY_DEVICE');
+                } else {
+                     onIsConnectedChange(false);
+                }
+            } catch (error) {
+                console.error('Failed to fetch readings:', error);
+                onIsConnectedChange(false);
+            }
+        };
+
+        fetchLatestReading(); 
+        const interval = setInterval(fetchLatestReading, 5000); 
+
+        return () => clearInterval(interval);
+    }, [onIsConnectedChange]);
+
     const [irrigationOn, setIrrigationOn] = useState(true);
     const [nightLightOn, setNightLightOn] = useState(false);
-    const deviceId = "ESP_CAM_SMARTGREENHOUSE_001";
 
     const handleControlChange = async (control: 'autoIrrigation' | 'nightLight', value: boolean) => {
         if (control === 'autoIrrigation') {
@@ -110,14 +164,10 @@ function RealTimeMonitoring() {
         } else {
             setNightLightOn(value);
         }
-        await updateDeviceControls({ deviceId, [control]: value });
+        await updateDeviceControls({ deviceId: DEVICE_ID, [control]: value });
     };
 
-    const StatusIndicator = ({ inRange }: { inRange: boolean }) => {
-        return (
-            <span className={`h-3 w-3 rounded-full ${inRange ? 'bg-green-500' : 'bg-red-500'}`}></span>
-        );
-    };
+    const isDummyData = latestReading.deviceId === 'DUMMY_DEVICE';
 
     return (
         <Card className="shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '100ms' }}>
@@ -130,24 +180,20 @@ function RealTimeMonitoring() {
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <div className="flex items-center gap-3">
-                    <StatusIndicator inRange={readings.temp >= idealRanges.temp.min && readings.temp <= idealRanges.temp.max} />
                     <Thermometer className="text-primary"/>
-                    <p>Temp: <span className="font-bold">{readings.temp}°C</span></p>
+                    <p>Temp: <span className="font-bold">{latestReading.temperature}°C</span></p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <StatusIndicator inRange={readings.moisture >= idealRanges.moisture.min && readings.moisture <= idealRanges.moisture.max} />
                     <Droplets className="text-primary"/>
-                    <p>Moisture: <span className="font-bold">{readings.moisture}%</span></p>
+                    <p>Moisture: <span className="font-bold">{latestReading.soilMoisture}%</span></p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <StatusIndicator inRange={readings.light >= idealRanges.light.min && readings.light <= idealRanges.light.max} />
                     <Lightbulb className="text-primary"/>
-                    <p>Light: <span className="font-bold">{readings.light} lux</span></p>
+                    <p>Light: <span className="font-bold">{latestReading.light} lux</span></p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <StatusIndicator inRange={readings.gas >= idealRanges.gas.min && readings.gas <= idealRanges.gas.max} />
                     <Wind className="text-primary"/>
-                    <p>Gas: <span className="font-bold">{readings.gas} ppm</span></p>
+                    <p>Gas: <span className="font-bold">{latestReading.mq2} ppm</span></p>
                 </div>
                  <div className="flex items-center justify-between col-span-2 sm:col-span-1">
                     <Label htmlFor="auto-irrigation" className="flex items-center gap-3 cursor-pointer">
@@ -163,7 +209,9 @@ function RealTimeMonitoring() {
                     </Label>
                     <Switch id="night-lighting" checked={nightLightOn} onCheckedChange={(value) => handleControlChange('nightLight', value)} />
                 </div>
-                 <p className="text-xs col-span-2 text-center pt-4 text-muted-foreground">[Displaying dummy data. Awaiting real data from ESP32]</p>
+                {isDummyData && (
+                    <p className="text-xs col-span-2 text-center pt-4 text-muted-foreground">[Displaying dummy data. Awaiting real data from ESP32]</p>
+                )}
             </CardContent>
         </Card>
     )
@@ -173,6 +221,7 @@ function DashboardPageContent() {
   const searchParams = useSearchParams();
   const plantName = searchParams?.get('plantName');
   const [diagnosis, setDiagnosis] = useState<DiagnosePlantOutput | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
 
   return (
@@ -191,8 +240,8 @@ function DashboardPageContent() {
       <main className="container mx-auto p-4 py-8 md:p-8 space-y-8 flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <ConnectionStatus />
-                <RealTimeMonitoring />
+                <ConnectionStatus isConnected={isConnected} />
+                <RealTimeMonitoring onIsConnectedChange={setIsConnected} />
             </div>
             <div className="row-start-1 xl:row-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
                  <DiseaseDiagnosisCard 
@@ -229,3 +278,5 @@ export default function DashboardPage() {
         </Suspense>
     )
 }
+
+    
