@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
@@ -16,29 +15,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
-
-async function updateDeviceControls(
-  deviceId: string,
-  controls: { autoIrrigation?: boolean; nightLight?: boolean }
-) {
-  try {
-    const response = await fetch(`/api/controls/${deviceId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(controls),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update device controls');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error updating device controls:', error);
-  }
-}
 
 function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     const [conditions, setConditions] = useState<GeneratePlantConditionsOutput | null>(null);
@@ -186,7 +162,23 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
         } else {
             setNightLightOn(value);
         }
-        await updateDeviceControls(DEVICE_ID, { [control]: value });
+        
+        try {
+            const response = await fetch(`/api/controls/${DEVICE_ID}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ [control]: value }),
+            });
+        
+            if (!response.ok) {
+              throw new Error('Failed to update device controls');
+            }
+        
+            await response.json();
+        } catch (error) {
+            console.error('Error updating device controls:', error);
+            // Optionally, show a toast notification to the user
+        }
     };
 
     const isDummyData = latestReading.deviceId === 'DUMMY_DEVICE';
