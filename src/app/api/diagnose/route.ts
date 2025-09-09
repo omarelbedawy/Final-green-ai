@@ -1,9 +1,8 @@
 
 import { NextResponse } from 'next/server';
 
-let diagnoses: any[] = [];
-
 // In-memory storage for diagnoses
+const diagnoses: any[] = [];
 const diagnosisStore: Record<string, any[]> = {};
 
 export async function POST(req: Request) {
