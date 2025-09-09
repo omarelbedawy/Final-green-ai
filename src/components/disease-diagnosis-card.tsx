@@ -1,14 +1,14 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { diagnosePlant } from '@/actions/search';
+import { diagnosePlant as diagnosePlantAction } from '@/actions/search';
 import type { DiagnosePlantOutput } from '@/ai/types';
-import { Bug, Upload, Leaf, ShieldCheck, ShieldAlert, Clock } from 'lucide-react';
+import { Bug, Upload, Leaf, ShieldCheck, ShieldAlert, Clock, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 function SubmitButton() {
@@ -25,12 +25,41 @@ type DiseaseDiagnosisCardProps = {
     onDiagnose: (diagnosis: DiagnosePlantOutput | null) => void;
 };
 
+const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
+
 export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosisCardProps) {
   const { toast } = useToast();
-  const [error, setError] = useState<string | null>(null);
+  const [manualError, setManualError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [automatedDiagnosis, setAutomatedDiagnosis] = useState<DiagnosePlantOutput | null>(null);
+  const [isFetchingAutomated, setIsFetchingAutomated] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestDiagnosis = async () => {
+      try {
+        const response = await fetch(`/api/diagnose-esp?deviceId=${DEVICE_ID}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            setAutomatedDiagnosis(data);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch automated diagnosis:", error);
+      } finally {
+        setIsFetchingAutomated(false);
+      }
+    };
+
+    fetchLatestDiagnosis();
+    const interval = setInterval(fetchLatestDiagnosis, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,7 +70,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosis
       };
       reader.readAsDataURL(file);
       onDiagnose(null);
-      setError(null);
+      setManualError(null);
     }
   };
 
@@ -60,14 +89,14 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosis
     }
 
     setIsDiagnosing(true);
-    setError(null);
+    setManualError(null);
     onDiagnose(null);
 
     try {
-      const result = await diagnosePlant(formData);
+      const result = await diagnosePlantAction(formData);
       onDiagnose(result);
     } catch (e: any) {
-      setError('An error occurred during diagnosis. Please try again.');
+      setManualError('An error occurred during diagnosis. Please try again.');
       toast({
         variant: 'destructive',
         title: 'Diagnosis Failed',
@@ -80,23 +109,27 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosis
 
   const triggerFileSelect = () => fileInputRef.current?.click();
 
-  const hasAutomatedDiagnosis = false; 
+  const renderDiagnosisResult = (diag: DiagnosePlantOutput, title: string) => (
+     <div className="pt-4 space-y-3 text-left">
+         <h4 className="font-semibold flex items-center gap-2">
+            {diag.isHealthy ? 
+                <ShieldCheck className="text-green-500"/> : 
+                <ShieldAlert className="text-destructive"/>
+            }
+            {title}
+        </h4>
+        <div className={`p-3 rounded-md ${diag.isHealthy ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+            <p><strong>Status:</strong> <span className={diag.isHealthy ? 'text-green-600 font-bold' : 'text-destructive font-bold'}>{diag.isHealthy ? 'Healthy' : 'Diseased'}</span></p>
+            {!diag.isHealthy && (
+                <>
+                    <p><strong>Disease:</strong> {diag.disease}</p>
+                    <p className="mt-2"><strong>Suggested Remedy:</strong> {diag.remedy}</p>
+                </>
+            )}
+        </div>
+      </div>
+  );
 
-  if (hasAutomatedDiagnosis) {
-      return (
-           <Card className="shadow-lg hover:shadow-xl transition-all duration-300">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                        <Bug className="text-primary"/>
-                        Disease Status
-                    </CardTitle>
-                    <CardDescription>Latest automated health analysis.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                </CardContent>
-           </Card>
-      )
-  }
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-all duration-300">
@@ -108,63 +141,59 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosis
         <CardDescription>Automatic health analysis from ESP32.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
-        <Clock className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
-        <p className="font-medium text-muted-foreground">Awaiting first diagnosis</p>
-        <p className="text-xs text-muted-foreground">The ESP32 will automatically send a photo for analysis. You can also manually upload a photo for an instant check-up.</p>
+        {isFetchingAutomated ? (
+           <div className="flex items-center justify-center pt-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Checking for diagnosis...</p>
+          </div>
+        ) : automatedDiagnosis ? (
+            renderDiagnosisResult(automatedDiagnosis, 'Automated Diagnosis')
+        ) : (
+            <>
+                <Clock className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+                <p className="font-medium text-muted-foreground">Awaiting first diagnosis</p>
+                <p className="text-xs text-muted-foreground">The ESP32 will automatically send a photo for analysis.</p>
+            </>
+        )}
         
-        <form onSubmit={handleFormSubmit} className="pt-2">
-          <Input
-            id="photo"
-            name="photo"
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <Button type="button" variant="outline" size="sm" className="w-auto transition-transform hover:scale-105" onClick={triggerFileSelect}>
-            <Upload className="mr-2 h-4 w-4" />
-            {previewUrl ? 'Change Photo for Manual Check' : 'Manual Diagnosis'}
-          </Button>
+        <div className="pt-4 border-t">
+          <form onSubmit={handleFormSubmit} className="pt-2 space-y-4">
+             <h4 className="text-base font-semibold text-foreground">Manual Check-up</h4>
+            <Input
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <Button type="button" variant="outline" size="sm" className="w-auto transition-transform hover:scale-105" onClick={triggerFileSelect}>
+              <Upload className="mr-2 h-4 w-4" />
+              {previewUrl ? 'Change Photo' : 'Upload Photo'}
+            </Button>
 
-          {previewUrl && (
-            <div className="mt-4 aspect-video w-full overflow-hidden rounded-md border">
-              <Image src={previewUrl} alt="Plant preview" width={300} height={200} className="h-full w-full object-cover" />
-            </div>
-          )}
-          
-          {previewUrl && !isDiagnosing && <SubmitButton />}
-        </form>
+            {previewUrl && (
+              <div className="mt-4 aspect-video w-full overflow-hidden rounded-md border">
+                <Image src={previewUrl} alt="Plant preview" width={300} height={200} className="h-full w-full object-cover" />
+              </div>
+            )}
+            
+            {previewUrl && !isDiagnosing && <SubmitButton />}
+          </form>
+        </div>
+
 
         {isDiagnosing && (
           <div className="flex items-center justify-center pt-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Diagnosing...</p>
           </div>
         )}
         
-        {error && <p className="text-destructive text-sm font-medium">{error}</p>}
+        {manualError && <p className="text-destructive text-sm font-medium">{manualError}</p>}
 
-        {diagnosis && (
-          <div className="pt-4 space-y-3 text-left">
-             <h4 className="font-semibold flex items-center gap-2">
-                {diagnosis.isHealthy ? 
-                    <ShieldCheck className="text-green-500"/> : 
-                    <ShieldAlert className="text-destructive"/>
-                }
-                Manual Diagnosis Result
-            </h4>
-            <div className={`p-3 rounded-md ${diagnosis.isHealthy ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                <p><strong>Status:</strong> <span className={diagnosis.isHealthy ? 'text-green-600 font-bold' : 'text-destructive font-bold'}>{diagnosis.isHealthy ? 'Healthy' : 'Diseased'}</span></p>
-                {!diagnosis.isHealthy && (
-                    <>
-                        <p><strong>Disease:</strong> {diagnosis.disease}</p>
-                        <p className="mt-2"><strong>Suggested Remedy:</strong> {diagnosis.remedy}</p>
-                    </>
-                )}
-            </div>
-          </div>
-        )}
+        {diagnosis && renderDiagnosisResult(diagnosis, 'Manual Diagnosis Result')}
       </CardContent>
     </Card>
   );
