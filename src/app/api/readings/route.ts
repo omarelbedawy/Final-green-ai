@@ -63,23 +63,12 @@ export async function GET(request: NextRequest) {
   const deviceReadings = readingsByDevice[deviceId] || [];
   
   if (deviceReadings.length > 0) {
-    // Return all readings for the device
+    // Return all readings for the device if they exist
     return NextResponse.json(deviceReadings);
   }
 
-  // Return dummy data only if no readings for the specific device exist yet
-  return NextResponse.json([
-    {
-      deviceId: "DUMMY_DEVICE",
-      temperature: 25,
-      humidity: 60,
-      soilMoisture: 40,
-      light: 300,
-      mq2: 150,
-      pumpState: "OFF",
-      fanState: "OFF",
-      growLedState: "ON",
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  // If no readings for the specific device exist yet, return an empty array.
+  // The frontend will show a "waiting for data" state.
+  return NextResponse.json([]);
 }
+
