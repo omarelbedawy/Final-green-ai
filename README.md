@@ -35,7 +35,7 @@ The goal of Green-AI is to make advanced agriculture technology accessible to ev
 
 You can see a live version of the Green-AI web application deployed here:
 
-**[https://greenai-app.vercel.app/](https://greenai-app.vercel.app/)**
+**[https://final-green-ai.vercel.app/](https://final-green-ai.vercel.app/)**
 
 ## Core Features
 
@@ -129,7 +129,7 @@ Gather your components and wire them according to the circuit diagram. You will 
     - Open the firmware file (`.ino`) provided in this repository.
     - Ensure the following lines are set correctly:
       ```cpp
-      const char* backendUrl = "https://your-vercel-app-name.vercel.app"; // IMPORTANT: Change this!
+      const char* backendUrl = "https://final-green-ai.vercel.app";
       const char* apiKey = "Green-AI"; // Should match your Vercel ESP_API_KEY
       ```
 4.  **Upload to ESP32-CAM**:
