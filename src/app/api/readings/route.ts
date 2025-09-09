@@ -1,13 +1,29 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-let readings: any[] = [];
+// متغير بسيط في الذاكرة عشان يخزن آخر قراءة
+let lastReading: any = null;
 
-export async function POST(req: Request) {
+// POST → يستقبل قراءات من ESP أو Postman
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
-    const { deviceId, temperature, humidity, soilMoisture, light } = body;
+    const body = await request.json();
+    const {
+      deviceId,
+      temperature,
+      humidity,
+      soilMoisture,
+      light,
+    } = body;
 
-    const reading = {
+    if (!deviceId) {
+      return NextResponse.json(
+        { error: "Device ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // نخزن آخر قراءة في الذاكرة
+    lastReading = {
       deviceId,
       temperature,
       humidity,
@@ -16,14 +32,29 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString(),
     };
 
-    readings.push(reading);
-
-    return NextResponse.json({ success: true, reading });
+    return NextResponse.json(
+      { message: "Reading saved successfully", data: lastReading },
+      { status: 201 }
+    );
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    console.error("Error saving reading:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
+// GET → يرجع آخر قراءة محفوظة أو dummy لو مفيش
 export async function GET() {
-  return NextResponse.json(readings);
+  if (lastReading) {
+    return NextResponse.json(lastReading);
+  }
+
+  // dummy data لو مفيش قراءات
+  return NextResponse.json({
+    deviceId: "DUMMY_DEVICE",
+    temperature: 25,
+    humidity: 60,
+    soilMoisture: 40,
+    light: 300,
+    timestamp: new Date().toISOString(),
+  });
 }
