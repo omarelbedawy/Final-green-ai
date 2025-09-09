@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// متغير بسيط في الذاكرة عشان يخزن آخر قراءة
-let lastReading: any = null;
+// Array يخزن كل القراءات اللي اتبعتت
+let readings: any[] = [];
 
-// POST → يستقبل قراءات من ESP أو Postman
+// POST → يضيف قراءة جديدة
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      deviceId,
-      temperature,
-      humidity,
-      soilMoisture,
-      light,
-    } = body;
+    const { deviceId, temperature, humidity, soilMoisture, light } = body;
 
     if (!deviceId) {
       return NextResponse.json(
@@ -22,8 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // نخزن آخر قراءة في الذاكرة
-    lastReading = {
+    const newReading = {
       deviceId,
       temperature,
       humidity,
@@ -32,29 +25,35 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     };
 
+    readings.push(newReading);
+
     return NextResponse.json(
-      { message: "Reading saved successfully", data: lastReading },
+      { message: "Reading saved successfully", data: newReading },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error saving reading:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
-// GET → يرجع آخر قراءة محفوظة أو dummy لو مفيش
+// GET → يرجع كل القراءات أو dummy لو مفيش
 export async function GET() {
-  if (lastReading) {
-    return NextResponse.json(lastReading);
+  if (readings.length > 0) {
+    return NextResponse.json(readings);
   }
 
-  // dummy data لو مفيش قراءات
-  return NextResponse.json({
-    deviceId: "DUMMY_DEVICE",
-    temperature: 25,
-    humidity: 60,
-    soilMoisture: 40,
-    light: 300,
-    timestamp: new Date().toISOString(),
-  });
+  return NextResponse.json([
+    {
+      deviceId: "DUMMY_DEVICE",
+      temperature: 25,
+      humidity: 60,
+      soilMoisture: 40,
+      light: 300,
+      timestamp: new Date().toISOString(),
+    },
+  ]);
 }
