@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 
-// تخزين مؤقت لكل الأجهزة
-const devices: Record<string, { autoIrrigation?: boolean; nightLight?: boolean }> = {};
+// نخزن البيانات في ميموري بدل DB
+const devices: Record<string, any> = {};
 
 export async function updateDeviceControls({
   deviceId,
@@ -15,33 +15,19 @@ export async function updateDeviceControls({
   nightLight?: boolean;
 }) {
   try {
-    const dataToUpdate: { autoIrrigation?: boolean; nightLight?: boolean } = {};
+    if (!devices[deviceId]) {
+      devices[deviceId] = { id: deviceId };
+    }
     if (autoIrrigation !== undefined) {
-      dataToUpdate.autoIrrigation = autoIrrigation;
+      devices[deviceId].autoIrrigation = autoIrrigation;
     }
     if (nightLight !== undefined) {
-      dataToUpdate.nightLight = nightLight;
+      devices[deviceId].nightLight = nightLight;
     }
 
-    if (Object.keys(dataToUpdate).length === 0) {
-      return { error: 'No control values provided' };
-    }
-
-    // لو الجهاز مش موجود، نضيفه
-    if (!devices[deviceId]) {
-      devices[deviceId] = {};
-    }
-
-    // نحدث القيم
-    devices[deviceId] = {
-      ...devices[deviceId],
-      ...dataToUpdate,
-    };
-
-    // Revalidate للـ API route
     revalidatePath(`/api/controls/${deviceId}`);
 
-    return { device: { id: deviceId, ...devices[deviceId] } };
+    return { device: devices[deviceId] };
   } catch (error) {
     console.error('Failed to update device controls:', error);
     return { error: 'Internal server error' };
