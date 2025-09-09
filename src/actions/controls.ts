@@ -1,8 +1,9 @@
-
 'use server';
 
-import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+
+// تخزين مؤقت لكل الأجهزة
+const devices: Record<string, { autoIrrigation?: boolean; nightLight?: boolean }> = {};
 
 export async function updateDeviceControls({
   deviceId,
@@ -26,19 +27,21 @@ export async function updateDeviceControls({
       return { error: 'No control values provided' };
     }
 
-    const device = await prisma.device.upsert({
-      where: { id: deviceId },
-      update: dataToUpdate,
-      create: {
-        id: deviceId,
-        ...dataToUpdate,
-      },
-    });
+    // لو الجهاز مش موجود، نضيفه
+    if (!devices[deviceId]) {
+      devices[deviceId] = {};
+    }
 
-    // Revalidate the path to ensure the API route provides fresh data
+    // نحدث القيم
+    devices[deviceId] = {
+      ...devices[deviceId],
+      ...dataToUpdate,
+    };
+
+    // Revalidate للـ API route
     revalidatePath(`/api/controls/${deviceId}`);
 
-    return { device };
+    return { device: { id: deviceId, ...devices[deviceId] } };
   } catch (error) {
     console.error('Failed to update device controls:', error);
     return { error: 'Internal server error' };
