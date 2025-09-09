@@ -1,33 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-// تخزين مؤقت للتشخيصات
-const diagnoses: any[] = [];
+let diagnoses: any[] = [];
 
-export async function POST(request: NextRequest) {
-  const deviceId = request.headers.get('X-Device-Id');
-  if (!deviceId) {
-    return NextResponse.json({ error: 'X-Device-Id header is required' }, { status: 400 });
-  }
-
+export async function POST(req: Request) {
   try {
-    const blob = await request.blob();
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    const photoDataUri = `data:${blob.type};base64,${buffer.toString('base64')}`;
+    const body = await req.json();
+    const { deviceId, issue, recommendation } = body;
 
     const diagnosis = {
       deviceId,
-      isHealthy: true,
-      disease: null,
-      remedy: null,
-      imageUrl: photoDataUri,
-      createdAt: new Date(),
+      issue,
+      recommendation,
+      timestamp: new Date().toISOString(),
     };
 
     diagnoses.push(diagnosis);
 
-    return NextResponse.json(diagnosis, { status: 201 });
+    return NextResponse.json({ success: true, diagnosis });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
   }
 }
 

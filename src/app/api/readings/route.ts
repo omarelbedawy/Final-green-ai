@@ -1,35 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-// تخزين القراءات
-const readings: any[] = [];
+let readings: any[] = [];
 
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { deviceId, temperature, humidity, soilMoisture, lightLevel, pumpState, fanState, growLedState, mq2 } = body;
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { deviceId, temperature, humidity, soilMoisture, light } = body;
 
-  if (!deviceId) {
-    return NextResponse.json({ error: 'Device ID is required' }, { status: 400 });
+    const reading = {
+      deviceId,
+      temperature,
+      humidity,
+      soilMoisture,
+      light,
+      timestamp: new Date().toISOString(),
+    };
+
+    readings.push(reading);
+
+    return NextResponse.json({ success: true, reading });
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
   }
-
-  const reading = {
-    deviceId,
-    temperature,
-    humidity,
-    soilMoisture,
-    lightLevel,
-    gas: mq2,
-    pumpState,
-    fanState,
-    growLedState,
-    createdAt: new Date(),
-  };
-
-  readings.push(reading);
-
-  return NextResponse.json(reading, { status: 201 });
 }
 
-// عشان تجيب القراءات كلها
 export async function GET() {
   return NextResponse.json(readings);
 }

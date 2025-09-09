@@ -1,17 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-// قيم افتراضية للـ thresholds
-export async function GET(request: NextRequest) {
-  const plantName = request.nextUrl.searchParams.get('plantName');
+let thresholds: Record<string, any> = {};
 
-  if (!plantName) {
-    return NextResponse.json({ error: 'plantName query parameter is required' }, { status: 400 });
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { deviceId, minTemp, maxTemp, minHumidity, maxHumidity } = body;
+
+    thresholds[deviceId] = {
+      minTemp,
+      maxTemp,
+      minHumidity,
+      maxHumidity,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return NextResponse.json({ success: true, thresholds: thresholds[deviceId] });
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
   }
+}
 
-  return NextResponse.json({
-    soilDryThreshold: 400,
-    mq2Threshold: 200,
-    tempThreshold: 30,
-    lightThreshold: 300,
-  });
+export async function GET() {
+  return NextResponse.json(thresholds);
 }
