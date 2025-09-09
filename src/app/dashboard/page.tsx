@@ -14,9 +14,31 @@ import { AgriChatbot } from '@/components/agri-chatbot';
 import type { DiagnosePlantOutput } from '@/ai/types';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { updateDeviceControls } from '@/actions/controls';
 
 const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
+
+async function updateDeviceControls(
+  deviceId: string,
+  controls: { autoIrrigation?: boolean; nightLight?: boolean }
+) {
+  try {
+    const response = await fetch(`/api/controls/${deviceId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(controls),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update device controls');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating device controls:', error);
+  }
+}
 
 function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     const [conditions, setConditions] = useState<GeneratePlantConditionsOutput | null>(null);
@@ -164,7 +186,7 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
         } else {
             setNightLightOn(value);
         }
-        await updateDeviceControls({ deviceId: DEVICE_ID, [control]: value });
+        await updateDeviceControls(DEVICE_ID, { [control]: value });
     };
 
     const isDummyData = latestReading.deviceId === 'DUMMY_DEVICE';
@@ -278,5 +300,3 @@ export default function DashboardPage() {
         </Suspense>
     )
 }
-
-    
