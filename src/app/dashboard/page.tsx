@@ -130,20 +130,20 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
             try {
                 const response = await fetch(`/api/readings?deviceId=${DEVICE_ID}`);
                 if (!response.ok) {
-                    onIsConnectedChange(false);
+                    // onIsConnectedChange(false); // Logic removed
                     return;
                 }
                 const data = await response.json();
                 if (data && data.length > 0) {
                     const lastReading = data[data.length - 1];
                     setLatestReading(lastReading);
-                    onIsConnectedChange(lastReading.deviceId !== 'DUMMY_DEVICE');
+                    // onIsConnectedChange(lastReading.deviceId !== 'DUMMY_DEVICE'); // Logic removed
                 } else {
-                     onIsConnectedChange(false);
+                    // onIsConnectedChange(false); // Logic removed
                 }
             } catch (error) {
                 console.error('Failed to fetch readings:', error);
-                onIsConnectedChange(false);
+                // onIsConnectedChange(false); // Logic removed
             }
         };
 
@@ -177,7 +177,6 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
             await response.json();
         } catch (error) {
             console.error('Error updating device controls:', error);
-            // Optionally, show a toast notification to the user
         }
     };
 
@@ -292,3 +291,5 @@ export default function DashboardPage() {
         </Suspense>
     )
 }
+
+    
