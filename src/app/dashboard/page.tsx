@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
@@ -122,7 +121,7 @@ const DUMMY_READING: Reading = {
 };
 
 
-function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isConnected: boolean) => void }) {
+function RealTimeMonitoring() {
     const [latestReading, setLatestReading] = useState<Reading>(DUMMY_READING);
 
     useEffect(() => {
@@ -130,20 +129,15 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
             try {
                 const response = await fetch(`/api/readings?deviceId=${DEVICE_ID}`);
                 if (!response.ok) {
-                    // onIsConnectedChange(false); // Logic removed
                     return;
                 }
                 const data = await response.json();
                 if (data && data.length > 0) {
                     const lastReading = data[data.length - 1];
                     setLatestReading(lastReading);
-                    // onIsConnectedChange(lastReading.deviceId !== 'DUMMY_DEVICE'); // Logic removed
-                } else {
-                    // onIsConnectedChange(false); // Logic removed
                 }
             } catch (error) {
                 console.error('Failed to fetch readings:', error);
-                // onIsConnectedChange(false); // Logic removed
             }
         };
 
@@ -151,12 +145,13 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
         const interval = setInterval(fetchLatestReading, 5000); 
 
         return () => clearInterval(interval);
-    }, [onIsConnectedChange]);
+    }, []);
 
     const [irrigationOn, setIrrigationOn] = useState(true);
     const [nightLightOn, setNightLightOn] = useState(false);
 
     const handleControlChange = async (control: 'autoIrrigation' | 'nightLight', value: boolean) => {
+        const payload = control === 'autoIrrigation' ? { autoIrrigation: value } : { nightLight: value };
         if (control === 'autoIrrigation') {
             setIrrigationOn(value);
         } else {
@@ -167,7 +162,7 @@ function RealTimeMonitoring({ onIsConnectedChange }: { onIsConnectedChange: (isC
             const response = await fetch(`/api/controls/${DEVICE_ID}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ [control]: value }),
+              body: JSON.stringify(payload),
             });
         
             if (!response.ok) {
@@ -234,7 +229,7 @@ function DashboardPageContent() {
   const searchParams = useSearchParams();
   const plantName = searchParams?.get('plantName');
   const [diagnosis, setDiagnosis] = useState<DiagnosePlantOutput | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const isConnected = false; // Hardcoded to false as requested.
 
 
   return (
@@ -254,7 +249,7 @@ function DashboardPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
                 <ConnectionStatus isConnected={isConnected} />
-                <RealTimeMonitoring onIsConnectedChange={setIsConnected} />
+                <RealTimeMonitoring />
             </div>
             <div className="row-start-1 xl:row-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
                  <DiseaseDiagnosisCard 
@@ -291,5 +286,3 @@ export default function DashboardPage() {
         </Suspense>
     )
 }
-
-    
