@@ -20,21 +20,24 @@ function SubmitButton() {
   );
 }
 
+type DiagnosePlantOutputWithTimestamp = DiagnosePlantOutput & { timestamp: string };
+
 type DiseaseDiagnosisCardProps = {
     diagnosis: DiagnosePlantOutput | null;
     onDiagnose: (diagnosis: DiagnosePlantOutput | null) => void;
+    onNewAutomatedDiagnosis: (timestamp: string) => void;
 };
 
 const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
 
-export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosisCardProps) {
+export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiagnosis }: DiseaseDiagnosisCardProps) {
   const { toast } = useToast();
   const [manualError, setManualError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [automatedDiagnosis, setAutomatedDiagnosis] = useState<DiagnosePlantOutput | null>(null);
+  const [automatedDiagnosis, setAutomatedDiagnosis] = useState<DiagnosePlantOutputWithTimestamp | null>(null);
   const [isFetchingAutomated, setIsFetchingAutomated] = useState(true);
 
   useEffect(() => {
@@ -43,8 +46,9 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosis
         const response = await fetch(`/api/diagnose-esp?deviceId=${DEVICE_ID}`);
         if (response.ok) {
           const data = await response.json();
-          if (data) {
+          if (data && data.timestamp) {
             setAutomatedDiagnosis(data);
+            onNewAutomatedDiagnosis(data.timestamp);
           }
         }
       } catch (error) {
@@ -58,7 +62,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose }: DiseaseDiagnosis
     const interval = setInterval(fetchLatestDiagnosis, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [onNewAutomatedDiagnosis]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {

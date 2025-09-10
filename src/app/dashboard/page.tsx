@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
+const CONNECTION_TIMEOUT = 15000; // 15 seconds
 
 function PlantCareInfoInternal({ plantName }: { plantName: string }) {
     const [conditions, setConditions] = useState<GeneratePlantConditionsOutput | null>(null);
@@ -89,7 +90,7 @@ function ConnectionStatus({ isConnected }: { isConnected: boolean }) {
                     </span>
                 </div>
                  <p className="text-xs text-muted-foreground pt-2">
-                    {isConnected ? 'Receiving live data.' : 'Awaiting connection from ESP32 device.'}
+                    {isConnected ? 'Receiving live data.' : 'Awaiting data from ESP32 device.'}
                  </p>
             </CardContent>
         </Card>
@@ -106,6 +107,7 @@ type Reading = {
     fanState: string;
     growLedState: string;
     deviceId: string;
+    timestamp: string;
 };
 
 const DUMMY_READING: Reading = {
@@ -118,10 +120,11 @@ const DUMMY_READING: Reading = {
       pumpState: "OFF",
       fanState: "OFF",
       growLedState: "ON",
+      timestamp: new Date(0).toISOString(),
 };
 
 
-function RealTimeMonitoring() {
+function RealTimeMonitoring({ onNewReading }: { onNewReading: (timestamp: string) => void }) {
     const [latestReading, setLatestReading] = useState<Reading>(DUMMY_READING);
 
     useEffect(() => {
@@ -135,6 +138,7 @@ function RealTimeMonitoring() {
                 if (data && data.length > 0) {
                     const lastReading = data[data.length - 1];
                     setLatestReading(lastReading);
+                    onNewReading(lastReading.timestamp);
                 }
             } catch (error) {
                 console.error('Failed to fetch readings:', error);
@@ -145,7 +149,7 @@ function RealTimeMonitoring() {
         const interval = setInterval(fetchLatestReading, 5000); 
 
         return () => clearInterval(interval);
-    }, []);
+    }, [onNewReading]);
 
     const [irrigationOn, setIrrigationOn] = useState(true);
     const [nightLightOn, setNightLightOn] = useState(false);
@@ -229,7 +233,9 @@ function DashboardPageContent() {
   const searchParams = useSearchParams();
   const plantName = searchParams?.get('plantName');
   const [diagnosis, setDiagnosis] = useState<DiagnosePlantOutput | null>(null);
-  const isConnected = false; // Hardcoded to false as requested.
+  const [lastReadingTimestamp, setLastReadingTimestamp] = useState<string | null>(null);
+
+  const isConnected = lastReadingTimestamp ? (new Date().getTime() - new Date(lastReadingTimestamp).getTime()) < CONNECTION_TIMEOUT : false;
 
 
   return (
@@ -249,12 +255,13 @@ function DashboardPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
                 <ConnectionStatus isConnected={isConnected} />
-                <RealTimeMonitoring />
+                <RealTimeMonitoring onNewReading={setLastReadingTimestamp} />
             </div>
             <div className="row-start-1 xl:row-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
                  <DiseaseDiagnosisCard 
                     diagnosis={diagnosis} 
                     onDiagnose={setDiagnosis} 
+                    onNewAutomatedDiagnosis={setLastReadingTimestamp}
                  />
             </div>
         </div>
