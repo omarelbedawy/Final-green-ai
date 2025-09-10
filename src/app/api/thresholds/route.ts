@@ -1,17 +1,22 @@
-import { NextResponse } from 'next/server';
+
+import { NextResponse, NextRequest } from 'next/server';
 
 let thresholds: Record<string, any> = {};
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { deviceId, minTemp, maxTemp, minHumidity, maxHumidity } = body;
+    const { deviceId, soilDryThreshold, mq2Threshold, tempThreshold, lightThreshold } = body;
+
+    if (!deviceId) {
+      return NextResponse.json({ error: 'Device ID is required' }, { status: 400 });
+    }
 
     thresholds[deviceId] = {
-      minTemp,
-      maxTemp,
-      minHumidity,
-      maxHumidity,
+      soilDryThreshold,
+      mq2Threshold,
+      tempThreshold,
+      lightThreshold,
       updatedAt: new Date().toISOString(),
     };
 
@@ -21,6 +26,14 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
-  return NextResponse.json(thresholds);
+export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const deviceId = searchParams.get('deviceId');
+
+    if (!deviceId) {
+        return NextResponse.json({ error: "Device ID is required" }, { status: 400 });
+    }
+    
+    const deviceThresholds = thresholds[deviceId] || null;
+    return NextResponse.json(deviceThresholds);
 }

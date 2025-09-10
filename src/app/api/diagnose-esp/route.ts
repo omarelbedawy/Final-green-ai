@@ -1,10 +1,8 @@
 
 import { NextResponse, NextRequest } from 'next/server';
 import { diagnosePlant } from '@/ai/flows/diagnose-plant';
+import { diagnosisStore } from '../diagnose/route';
 
-// In-memory store for diagnosis results.
-// This is a temporary store. In a real application, use a database.
-const diagnosisStore: Record<string, any[]> = {};
 
 /**
  * Handles POST requests from the ESP32 to diagnose a plant from a photo.
@@ -32,6 +30,7 @@ export async function POST(req: NextRequest) {
       disease: diagnosisResult.disease,
       remedy: diagnosisResult.remedy,
       isHealthy: diagnosisResult.isHealthy,
+      photoDataUri: photoDataUri, // Store the image data
       timestamp: new Date().toISOString(),
     };
 

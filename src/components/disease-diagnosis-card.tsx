@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { diagnosePlant as diagnosePlantAction } from '@/actions/search';
 import type { DiagnosePlantOutput } from '@/ai/types';
-import { Bug, Upload, Leaf, ShieldCheck, ShieldAlert, Clock, Loader2 } from 'lucide-react';
+import { Bug, Upload, Leaf, ShieldCheck, ShieldAlert, Clock, Loader2, Camera } from 'lucide-react';
 import Image from 'next/image';
 
 function SubmitButton() {
@@ -20,7 +20,7 @@ function SubmitButton() {
   );
 }
 
-type DiagnosePlantOutputWithTimestamp = DiagnosePlantOutput & { timestamp: string };
+type DiagnosePlantOutputWithTimestampAndPhoto = DiagnosePlantOutput & { timestamp: string; photoDataUri?: string };
 
 type DiseaseDiagnosisCardProps = {
     diagnosis: DiagnosePlantOutput | null;
@@ -37,7 +37,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [automatedDiagnosis, setAutomatedDiagnosis] = useState<DiagnosePlantOutputWithTimestamp | null>(null);
+  const [automatedDiagnosis, setAutomatedDiagnosis] = useState<DiagnosePlantOutputWithTimestampAndPhoto | null>(null);
   const [isFetchingAutomated, setIsFetchingAutomated] = useState(true);
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
 
   const triggerFileSelect = () => fileInputRef.current?.click();
 
-  const renderDiagnosisResult = (diag: DiagnosePlantOutput, title: string) => (
+  const renderDiagnosisResult = (diag: DiagnosePlantOutput, title: string, photoUri?: string) => (
      <div className="pt-4 space-y-3 text-left">
          <h4 className="font-semibold flex items-center gap-2">
             {diag.isHealthy ? 
@@ -122,6 +122,11 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
             }
             {title}
         </h4>
+        {photoUri && (
+             <div className="mt-2 aspect-video w-full overflow-hidden rounded-md border">
+                <Image src={photoUri} alt="Diagnosed plant" width={300} height={200} className="h-full w-full object-cover" />
+              </div>
+        )}
         <div className={`p-3 rounded-md ${diag.isHealthy ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
             <p><strong>Status:</strong> <span className={diag.isHealthy ? 'text-green-600 font-bold' : 'text-destructive font-bold'}>{diag.isHealthy ? 'Healthy' : 'Diseased'}</span></p>
             {!diag.isHealthy && (
@@ -139,7 +144,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
     <Card className="shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader>
         <CardTitle className="flex items-center gap-3">
-          <Bug className="text-primary" />
+          <Camera className="text-primary" />
           Disease Status
         </CardTitle>
         <CardDescription>Automatic health analysis from ESP32.</CardDescription>
@@ -151,7 +156,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
             <p className="ml-4 text-muted-foreground">Checking for diagnosis...</p>
           </div>
         ) : automatedDiagnosis ? (
-            renderDiagnosisResult(automatedDiagnosis, 'Automated Diagnosis')
+            renderDiagnosisResult(automatedDiagnosis, 'Automated Diagnosis', automatedDiagnosis.photoDataUri)
         ) : (
             <>
                 <Clock className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
@@ -177,13 +182,13 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
               {previewUrl ? 'Change Photo' : 'Upload Photo'}
             </Button>
 
-            {previewUrl && (
+            {previewUrl && !diagnosis && (
               <div className="mt-4 aspect-video w-full overflow-hidden rounded-md border">
                 <Image src={previewUrl} alt="Plant preview" width={300} height={200} className="h-full w-full object-cover" />
               </div>
             )}
             
-            {previewUrl && !isDiagnosing && <SubmitButton />}
+            {previewUrl && !isDiagnosing && !diagnosis && <SubmitButton />}
           </form>
         </div>
 
@@ -197,7 +202,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
         
         {manualError && <p className="text-destructive text-sm font-medium">{manualError}</p>}
 
-        {diagnosis && renderDiagnosisResult(diagnosis, 'Manual Diagnosis Result')}
+        {diagnosis && renderDiagnosisResult(diagnosis, 'Manual Diagnosis Result', previewUrl || undefined)}
       </CardContent>
     </Card>
   );

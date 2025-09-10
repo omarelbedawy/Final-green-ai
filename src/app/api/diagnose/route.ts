@@ -1,8 +1,12 @@
+
 import { NextResponse, NextRequest } from 'next/server';
+
+// This route is no longer used for POST, only for GET to fetch the latest diagnosis for the dashboard.
+// The POST logic has been moved to /api/diagnose-esp to handle file uploads from the hardware.
 
 // In-memory store for diagnosis results.
 // In a production app, you would use a database (e.g., Firestore, MongoDB).
-const diagnosisStore: Record<string, any[]> = {};
+export const diagnosisStore: Record<string, any[]> = {};
 
 /**
  * Handles GET requests to retrieve the latest diagnosis for a device.

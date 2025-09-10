@@ -8,14 +8,52 @@ import { useState } from 'react';
 import type { GeneratePlantConditionsOutput } from '@/ai/flows/generate-plant-conditions';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { useToast } from '@/hooks/use-toast';
+
+
+const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
 
 export function ConditionsDashboard({ conditions, plantName }: { conditions: GeneratePlantConditionsOutput; plantName: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editableConditions, setEditableConditions] = useState(conditions);
+  const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditableConditions(prev => ({ ...prev, [name]: parseFloat(value) || value }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      const response = await fetch(`/api/thresholds`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: DEVICE_ID,
+          soilDryThreshold: editableConditions.soilDryThreshold,
+          mq2Threshold: editableConditions.mq2Threshold,
+          tempThreshold: editableConditions.tempThreshold,
+          lightThreshold: editableConditions.lightThreshold,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save conditions.');
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Your custom conditions have been saved.',
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving conditions:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save your custom conditions. Please try again.',
+      });
+    }
   };
 
   const ThresholdCard = ({ title, icon: Icon, value, name, unit, isEditing }: { title: string; icon: React.ElementType, value: number; name: string; unit: string; isEditing: boolean }) => (
@@ -46,7 +84,7 @@ export function ConditionsDashboard({ conditions, plantName }: { conditions: Gen
         {isEditing ? (
           <div className="flex gap-2">
             <Button onClick={() => setIsEditing(false)} variant="outline" size="icon" className="rounded-full"><X className="h-4 w-4" /></Button>
-            <Button onClick={() => setIsEditing(false)} size="icon" className="rounded-full"><Save className="h-4 w-4" /></Button>
+            <Button onClick={handleSaveChanges} size="icon" className="rounded-full"><Save className="h-4 w-4" /></Button>
           </div>
         ) : (
           <Button onClick={() => setIsEditing(true)} variant="outline" size="icon" className="rounded-full">
@@ -113,4 +151,3 @@ export function ConditionsSkeleton() {
     </div>
   );
 }
-
