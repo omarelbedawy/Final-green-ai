@@ -10,7 +10,8 @@ import type { DiagnosePlantOutput } from '@/ai/types';
 import { Bug, Upload, ShieldCheck, ShieldAlert, Clock, Loader2, Camera } from 'lucide-react';
 import Image from 'next/image';
 
-type DiagnosePlantOutputWithTimestampAndPhoto = DiagnosePlantOutput & { timestamp?: string; photoDataUri?: string };
+type DiagnosisSource = 'automated' | 'manual';
+type DiagnosePlantOutputWithTimestampAndPhoto = DiagnosePlantOutput & { timestamp?: string; photoDataUri?: string; source: DiagnosisSource };
 
 type DiseaseDiagnosisCardProps = {
     onNewDiagnosis: (diagnosis: DiagnosePlantOutput | null) => void;
@@ -36,9 +37,16 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
         if (response.ok) {
           const data = await response.json();
           if (data && data.timestamp) {
-            setLastDiagnosis(data);
-            onNewDiagnosis(data);
-            onNewAutomatedTimestamp(data.timestamp);
+            // Only update if the new data is different from the current manual diagnosis
+            if (lastDiagnosis?.source !== 'manual' || lastDiagnosis.timestamp !== data.timestamp) {
+              const automatedResult: DiagnosePlantOutputWithTimestampAndPhoto = {
+                ...data,
+                source: 'automated',
+              }
+              setLastDiagnosis(automatedResult);
+              onNewDiagnosis(data);
+              onNewAutomatedTimestamp(data.timestamp);
+            }
           }
         }
       } catch (error) {
@@ -52,7 +60,7 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
     const interval = setInterval(fetchLatestDiagnosis, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
-  }, [onNewDiagnosis, onNewAutomatedTimestamp, isFetching]);
+  }, [onNewDiagnosis, onNewAutomatedTimestamp, isFetching, lastDiagnosis]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,7 +97,8 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
       const manualResult: DiagnosePlantOutputWithTimestampAndPhoto = {
         ...result,
         photoDataUri: previewUrl || undefined,
-        timestamp: new Date().toISOString(), // Add timestamp for consistency
+        timestamp: new Date().toISOString(),
+        source: 'manual',
       }
       setLastDiagnosis(manualResult);
       onNewDiagnosis(result);
@@ -108,8 +117,7 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
   const triggerFileSelect = () => fileInputRef.current?.click();
 
   const renderDiagnosisResult = (diag: DiagnosePlantOutputWithTimestampAndPhoto) => {
-    const isAutomated = !!diag.timestamp && !previewUrl?.startsWith('data:'); // A bit of a hack to differentiate
-    const title = isAutomated ? 'Automated Diagnosis' : 'Manual Diagnosis';
+    const title = diag.source === 'automated' ? 'Automated Diagnosis' : 'Manual Diagnosis';
     const photoUri = diag.photoDataUri;
 
     return (
