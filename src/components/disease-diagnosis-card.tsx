@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { diagnosePlant as diagnosePlantAction } from '@/actions/search';
 import type { DiagnosePlantOutput } from '@/ai/types';
-import { Bug, Upload, Leaf, ShieldCheck, ShieldAlert, Clock, Loader2, Camera } from 'lucide-react';
+import { Bug, Upload, ShieldCheck, ShieldAlert, Clock, Loader2, Camera } from 'lucide-react';
 import Image from 'next/image';
 
 type DiagnosePlantOutputWithTimestampAndPhoto = DiagnosePlantOutput & { timestamp?: string; photoDataUri?: string };
@@ -44,7 +44,7 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
       } catch (error) {
         console.error("Failed to fetch automated diagnosis:", error);
       } finally {
-        setIsFetching(false);
+        if (isFetching) setIsFetching(false);
       }
     };
 
@@ -52,7 +52,7 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
     const interval = setInterval(fetchLatestDiagnosis, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
-  }, [onNewDiagnosis, onNewAutomatedTimestamp]);
+  }, [onNewDiagnosis, onNewAutomatedTimestamp, isFetching]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +86,12 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
 
     try {
       const result = await diagnosePlantAction(formData);
-      setLastDiagnosis({ ...result, photoDataUri: previewUrl || undefined });
+      const manualResult: DiagnosePlantOutputWithTimestampAndPhoto = {
+        ...result,
+        photoDataUri: previewUrl || undefined,
+        timestamp: new Date().toISOString(), // Add timestamp for consistency
+      }
+      setLastDiagnosis(manualResult);
       onNewDiagnosis(result);
     } catch (e: any) {
       setError('An error occurred during diagnosis. Please try again.');
@@ -103,7 +108,8 @@ export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }
   const triggerFileSelect = () => fileInputRef.current?.click();
 
   const renderDiagnosisResult = (diag: DiagnosePlantOutputWithTimestampAndPhoto) => {
-    const title = diag.timestamp ? 'Automated Diagnosis' : 'Manual Diagnosis';
+    const isAutomated = !!diag.timestamp && !previewUrl?.startsWith('data:'); // A bit of a hack to differentiate
+    const title = isAutomated ? 'Automated Diagnosis' : 'Manual Diagnosis';
     const photoUri = diag.photoDataUri;
 
     return (
