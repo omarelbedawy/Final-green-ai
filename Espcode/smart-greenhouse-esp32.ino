@@ -1,125 +1,63 @@
-#include "WiFi.h"
-#include "WiFiManager.h"
-#include "HTTPClient.h"
-#include "ArduinoJson.h"
-#include "DHT.h"
+// Green-AI: Smart Greenhouse Firmware
+// Author: Omar Elbedawy
+
+// Core Libraries
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include "esp_camera.h"
+#include <ArduinoJson.h>
+#include <WiFiManager.h>
+#include <HTTPClient.h>
 
-// Pin definitions
-#define DHTPIN 4
-#define SOIL_MOISTURE_PIN 32
-#define LDR_PIN 33
-#define MQ2_PIN 35
-#define PUMP_PIN 12
-#define FAN_PIN 13
-#define GROW_LED_PIN 14
-#define NIGHT_LED_PIN 15
+// Sensor Libraries
+#include "DHT.h" // For DHT22 Temperature and Humidity Sensor
 
-// Camera pins for AI-Thinker ESP32-CAM
-#define PWDN_GPIO_NUM     32
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM      0
-#define SIOD_GPIO_NUM     26
-#define SIOC_GPIO_NUM     27
-#define Y9_GPIO_NUM       35
-#define Y8_GPIO_NUM       34
-#define Y7_GPIO_NUM       39
-#define Y6_GPIO_NUM       36
-#define Y5_GPIO_NUM       21
-#define Y4_GPIO_NUM       19
-#define Y3_GPIO_NUM       18
-#define Y2_GPIO_NUM        5
-#define VSYNC_GPIO_NUM    25
-#define HREF_GPIO_NUM     23
-#define PCLK_GPIO_NUM     22
+// Pin Definitions
+#define CAMERA_MODEL_AI_THINKER
+#include "camera_pins.h"
 
+// --- SENSORS ---
+#define DHT_PIN         15  // DHT22 Temperature/Humidity Sensor
+#define SOIL_MOISTURE_PIN 33 // Soil Moisture Sensor
+#define LDR_PIN         32  // Light Dependent Resistor (LDR)
+#define MQ2_PIN         35  // MQ-2 Gas/Air Quality Sensor
 
-// Configuration
-#define DHTTYPE DHT22
+// --- ACTUATORS ---
+#define PUMP_PIN        12  // Water Pump Relay
+#define FAN_PIN         13  // Fan Relay
+#define GROW_LIGHT_PIN  14  // Grow Light Relay
+#define FLASH_PIN       4   // Camera Flash LED
+
+// Sensor & Control Objects
+DHT dht(DHT_PIN, DHT22);
+
+// Backend Configuration
 const char* backendUrl = "https://final-green-ai.vercel.app";
 const char* deviceId = "ESP_CAM_SMARTGREENHOUSE_001";
-const char* apiKey = "Green-AI"; // Should match your Vercel ESP_API_KEY
 
-// Control thresholds (will be fetched from backend)
-float tempThreshold = 30.0;
-int soilDryThreshold = 40;
-int mq2Threshold = 300;
-int lightThreshold = 400;
+// --- State and Thresholds ---
+// These values will be updated from the dashboard
+float tempThreshold = 30.0;    // Default Temperature threshold (Celsius)
+float soilDryThreshold = 40.0; // Default Soil moisture threshold (%)
+int   lightThreshold = 500;    // Default Light level threshold (lux)
+int   mq2Threshold = 300;      // Default MQ-2 Gas threshold (ppm)
 
-// Control flags
-bool autoIrrigation = true;
-bool nightLight = false;
+bool autoIrrigation = true; // Master control for automatic watering
+bool nightLight = false;    // Master control for turning light on at night
 
-// Timers
+// Timing intervals
 unsigned long lastReadingTime = 0;
-unsigned long lastControlFetchTime = 0;
-unsigned long lastDiagnosisTime = 0;
-const long readingInterval = 5000; // 5 seconds
-const long controlFetchInterval = 10000; // 10 seconds
-const long diagnosisInterval = 3600000; // 1 hour
+unsigned long lastPhotoTime = 0;
+unsigned long lastConfigTime = 0;
+const long readingInterval = 10000;    // 10 seconds
+const long photoInterval = 3600000;  // 1 hour
+const long configInterval = 60000;   // 1 minute
 
-DHT dht(DHTPIN, DHTTYPE);
 
-void setup() {
-  Serial.begin(115200);
-  
-  pinMode(PUMP_PIN, OUTPUT);
-  pinMode(FAN_PIN, OUTPUT);
-  pinMode(GROW_LED_PIN, OUTPUT);
-  pinMode(NIGHT_LED_PIN, OUTPUT);
-
-  dht.begin();
-  
-  // Connect to Wi-Fi
-  connectToWiFi();
-  
-  // Initialize Camera
-  initCamera();
-
-  // Initial fetch of controls
-  fetchControls();
-}
-
-void loop() {
-  unsigned long currentTime = millis();
-
-  // Send sensor readings periodically
-  if (currentTime - lastReadingTime >= readingInterval) {
-    lastReadingTime = currentTime;
-    sendSensorReadings();
-  }
-
-  // Fetch remote controls periodically
-  if (currentTime - lastControlFetchTime >= controlFetchInterval) {
-    lastControlFetchTime = currentTime;
-    fetchControls();
-  }
-  
-  // Run automated diagnosis periodically
-  if (currentTime - lastDiagnosisTime >= diagnosisInterval) {
-    lastDiagnosisTime = currentTime;
-    captureAndUploadPhoto();
-  }
-}
-
-void connectToWiFi() {
-  WiFiManager wm;
-  wm.setConnectTimeout(20);
-  wm.setAPClientCheck(true);
-  
-  bool res = wm.autoConnect("Green-AI-Device", "password");
-
-  if (!res) {
-    Serial.println("Failed to connect to WiFi. Rebooting...");
-    ESP.restart();
-  } else {
-    Serial.println("Connected to WiFi!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-  }
-}
-
-void initCamera() {
+// ==========================================================
+//                     CAMERA SETUP
+// ==========================================================
+void setupCamera() {
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -141,13 +79,10 @@ void initCamera() {
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  
-  // Frame size
   config.frame_size = FRAMESIZE_VGA; // 640x480
-  config.jpeg_quality = 12; // 0-63, lower means higher quality
+  config.jpeg_quality = 12; // 0-63 lower numbers are higher quality
   config.fb_count = 1;
 
-  // Camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     Serial.printf("Camera init failed with error 0x%x", err);
@@ -155,137 +90,270 @@ void initCamera() {
   }
 }
 
+// ==========================================================
+//               WI-FI & INITIAL SETUP
+// ==========================================================
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  
+  pinMode(PUMP_PIN, OUTPUT);
+  pinMode(FAN_PIN, OUTPUT);
+  pinMode(GROW_LIGHT_PIN, OUTPUT);
+  pinMode(FLASH_PIN, OUTPUT);
 
-void sendSensorReadings() {
+  digitalWrite(PUMP_PIN, LOW); // Default to OFF
+  digitalWrite(FAN_PIN, LOW);
+  digitalWrite(GROW_LIGHT_PIN, LOW);
+  
+  // Setup Wi-Fi Manager
+  WiFiManager wm;
+  wm.setAPStaticIP(IPAddress(192, 168, 4, 1));
+  wm.setConnectTimeout(20);
+  wm.setSaveConfigCallback([](){
+    Serial.println("Wi-Fi credentials saved.");
+  });
+
+  bool res = wm.autoConnect("Green-AI-Device", "password");
+  if(!res) {
+      Serial.println("Failed to connect to Wi-Fi. Please restart.");
+      ESP.restart();
+  } else {
+      Serial.println("Connected to Wi-Fi successfully!");
+      Serial.print("IP Address: ");
+      Serial.println(WiFi.localIP());
+  }
+
+  setupCamera();
+  
+  // Fetch initial configuration on boot
+  fetchThresholds();
+  fetchControls();
+}
+
+
+// ==========================================================
+//                 SENSOR READING & LOGIC
+// ==========================================================
+void readSensorsAndPost() {
   float temp = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  int soilMoisture = map(analogRead(SOIL_MOISTURE_PIN), 0, 4095, 100, 0);
-  int light = map(analogRead(LDR_PIN), 0, 4095, 100, 0);
+  float hum = dht.readHumidity();
+  // Map the 0-4095 reading to a 0-100 percentage
+  int soilMoistureRaw = analogRead(SOIL_MOISTURE_PIN);
+  int soilMoisture = map(soilMoistureRaw, 0, 4095, 100, 0); 
+  int light = analogRead(LDR_PIN);
   int mq2 = analogRead(MQ2_PIN);
 
-  if (isnan(temp) || isnan(humidity)) {
+  if (isnan(temp) || isnan(hum)) {
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
-  
-  // --- Automation Logic ---
-  bool pumpState = false;
-  if (autoIrrigation && soilMoisture < soilDryThreshold) {
-    digitalWrite(PUMP_PIN, HIGH);
-    pumpState = true;
+
+  // --- AUTOMATION LOGIC ---
+  // Pump Control
+  if (autoIrrigation) {
+    if (soilMoisture < soilDryThreshold) {
+      digitalWrite(PUMP_PIN, HIGH); // Turn pump ON
+    } else {
+      digitalWrite(PUMP_PIN, LOW); // Turn pump OFF
+    }
   } else {
-    digitalWrite(PUMP_PIN, LOW);
+    digitalWrite(PUMP_PIN, LOW); // Ensure pump is off if automation is disabled
   }
 
-  bool fanState = false;
+  // Fan Control
   if (temp > tempThreshold || mq2 > mq2Threshold) {
     digitalWrite(FAN_PIN, HIGH);
-    fanState = true;
   } else {
     digitalWrite(FAN_PIN, LOW);
   }
-  
-  bool growLedState = false;
+
+  // Grow Light Control
   if (light < lightThreshold) {
-    digitalWrite(GROW_LED_PIN, HIGH);
-    growLedState = true;
+      if (nightLight) {
+          digitalWrite(GROW_LIGHT_PIN, HIGH); // Night light override
+      } else {
+          // Normal day/night cycle logic could go here if needed
+          digitalWrite(GROW_LIGHT_PIN, LOW);
+      }
   } else {
-    digitalWrite(GROW_LED_PIN, LOW);
+      digitalWrite(GROW_LIGHT_PIN, LOW);
   }
 
-  digitalWrite(NIGHT_LED_PIN, nightLight ? HIGH : LOW);
+  // --- POST DATA TO BACKEND ---
+  WiFiClientSecure client;
+  client.setInsecure(); // Use this for simplicity. For production, use certificates.
+  HTTPClient http;
 
-  // --- Prepare JSON payload ---
-  StaticJsonDocument<256> doc;
+  String url = String(backendUrl) + "/api/readings";
+  http.begin(client, url);
+  http.addHeader("Content-Type", "application/json");
+
+  JsonDocument doc;
   doc["deviceId"] = deviceId;
   doc["temperature"] = temp;
-  doc["humidity"] = humidity;
+  doc["humidity"] = hum;
   doc["soilMoisture"] = soilMoisture;
   doc["light"] = light;
   doc["mq2"] = mq2;
-  doc["pumpState"] = pumpState ? "ON" : "OFF";
-  doc["fanState"] = fanState ? "ON" : "OFF";
-  doc["growLedState"] = growLedState ? "ON" : "OFF";
+  doc["pumpState"] = (digitalRead(PUMP_PIN) == HIGH) ? "ON" : "OFF";
+  doc["fanState"] = (digitalRead(FAN_PIN) == HIGH) ? "ON" : "OFF";
+  doc["growLedState"] = (digitalRead(GROW_LIGHT_PIN) == HIGH) ? "ON" : "OFF";
 
-  String jsonBuffer;
-  serializeJson(doc, jsonBuffer);
+  String requestBody;
+  serializeJson(doc, requestBody);
 
-  // --- Send POST request ---
-  HTTPClient http;
-  String url = String(backendUrl) + "/api/readings";
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("x-api-key", apiKey);
-
-  int httpResponseCode = http.POST(jsonBuffer);
+  int httpResponseCode = http.POST(requestBody);
   if (httpResponseCode > 0) {
-    Serial.printf("Sensor data sent, response: %d\n", httpResponseCode);
+    String response = http.getString();
+    Serial.println("Readings POST successful. Code: " + String(httpResponseCode));
+    Serial.println(response);
   } else {
-    Serial.printf("Error sending sensor data, code: %s\n", http.errorToString(httpResponseCode).c_str());
+    Serial.println("Error on POST: " + String(httpResponseCode));
   }
   http.end();
+}
+
+
+// ==========================================================
+//               FETCH REMOTE CONFIGURATION
+// ==========================================================
+void fetchThresholds() {
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
+    
+    String url = String(backendUrl) + "/api/thresholds?deviceId=" + String(deviceId);
+    http.begin(client, url);
+    
+    int httpResponseCode = http.GET();
+    if (httpResponseCode == 200) {
+        String payload = http.getString();
+        Serial.println("Fetched thresholds: " + payload);
+
+        JsonDocument doc;
+        deserializeJson(doc, payload);
+        
+        // Update local variables if the keys exist in the JSON
+        if (doc.containsKey("soilDryThreshold")) {
+            soilDryThreshold = doc["soilDryThreshold"];
+        }
+        if (doc.containsKey("mq2Threshold")) {
+            mq2Threshold = doc["mq2Threshold"];
+        }
+        if (doc.containsKey("tempThreshold")) {
+            tempThreshold = doc["tempThreshold"];
+        }
+        if (doc.containsKey("lightThreshold")) {
+            lightThreshold = doc["lightThreshold"];
+        }
+    } else {
+        Serial.println("Error fetching thresholds, code: " + String(httpResponseCode));
+    }
+    http.end();
 }
 
 void fetchControls() {
-  HTTPClient http;
-  String url = String(backendUrl) + "/api/controls/" + String(deviceId);
-  http.begin(url);
-  http.addHeader("x-api-key", apiKey);
-
-  int httpResponseCode = http.GET();
-  if (httpResponseCode == 200) {
-    String payload = http.getString();
-    StaticJsonDocument<200> doc;
-    deserializeJson(doc, payload);
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
     
-    autoIrrigation = doc["autoIrrigation"] | true; // Default to true
-    nightLight = doc["nightLight"] | false;     // Default to false
+    String url = String(backendUrl) + "/api/controls/" + String(deviceId);
+    http.begin(client, url);
 
-    Serial.println("Controls updated.");
+    int httpResponseCode = http.GET();
+    if (httpResponseCode == 200) {
+        String payload = http.getString();
+        Serial.println("Fetched controls: " + payload);
 
-  } else {
-    Serial.printf("Error fetching controls, code: %d\n", httpResponseCode);
-  }
-  http.end();
+        JsonDocument doc;
+        deserializeJson(doc, payload);
+
+        if (doc.containsKey("autoIrrigation")) {
+            autoIrrigation = doc["autoIrrigation"];
+        }
+        if (doc.containsKey("nightLight")) {
+            nightLight = doc["nightLight"];
+        }
+    } else {
+        Serial.println("Error fetching controls, code: " + String(httpResponseCode));
+    }
+    http.end();
 }
 
+// ==========================================================
+//                   DIAGNOSIS UPLOAD
+// ==========================================================
 void captureAndUploadPhoto() {
-  camera_fb_t * fb = esp_camera_fb_get();
+  Serial.println("Capturing photo...");
+  digitalWrite(FLASH_PIN, HIGH);
+  delay(500); // Let the flash stabilize
+
+  camera_fb_t *fb = esp_camera_fb_get();
   if (!fb) {
     Serial.println("Camera capture failed");
+    digitalWrite(FLASH_PIN, LOW);
     return;
   }
+  digitalWrite(FLASH_PIN, LOW);
 
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
+
   String url = String(backendUrl) + "/api/diagnose-esp";
-  
-  http.begin(url);
-  
-  // The 'photo' field name must match what the server expects in `req.formData()`
+  http.begin(client, url);
+
   String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
   http.addHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
 
-  String body_prefix = "--" + boundary + "\r\n";
-  body_prefix += "Content-Disposition: form-data; name=\"photo\"; filename=\"plant.jpg\"\r\n";
-  body_prefix += "Content-Type: image/jpeg\r\n\r\n";
-
+  String body_prefix = "--" + boundary + "\r\n" +
+                     "Content-Disposition: form-data; name=\"photo\"; filename=\"plant.jpg\"\r\n" +
+                     "Content-Type: image/jpeg\r\n\r\n";
   String body_suffix = "\r\n--" + boundary + "--\r\n";
   
   size_t total_len = body_prefix.length() + fb->len + body_suffix.length();
   
-  http.sendRequest("POST", (uint8_t*)body_prefix.c_str(), body_prefix.length());
-  http.sendRequest("POST", (uint8_t*)fb->buf, fb->len);
-  http.sendRequest("POST", (uint8_t*)body_suffix.c_str(), body_suffix.length());
+  http.setContentLength(total_len);
 
-  int httpResponseCode = http.end_stream();
+  client.print(body_prefix);
+  client.write(fb->buf, fb->len);
+  client.print(body_suffix);
 
-  if (httpResponseCode > 0) {
-    Serial.printf("Diagnosis photo uploaded, server responded with %d\n", httpResponseCode);
+  int httpCode = http.POST(""); // POST with empty string for streaming
+  if (httpCode > 0) {
     String response = http.getString();
-    Serial.println(response);
+    Serial.println("Photo upload successful. Code: " + String(httpCode));
+    Serial.println("Diagnosis: " + response);
   } else {
-    Serial.printf("Error uploading photo: %s\n", http.errorToString(httpResponseCode).c_str());
+    Serial.println("Error during photo upload: " + String(httpCode));
+    Serial.println(http.getString());
   }
-  
-  esp_camera_fb_return(fb); // return the frame buffer
+
+  http.end();
+  esp_camera_fb_return(fb);
+}
+
+
+// ==========================================================
+//                       MAIN LOOP
+// ==========================================================
+void loop() {
+  unsigned long currentTime = millis();
+
+  if (currentTime - lastConfigTime >= configInterval) {
+    lastConfigTime = currentTime;
+    fetchThresholds();
+    fetchControls();
+  }
+
+  if (currentTime - lastReadingTime >= readingInterval) {
+    lastReadingTime = currentTime;
+    readSensorsAndPost();
+  }
+
+  if (currentTime - lastPhotoTime >= photoInterval) {
+    lastPhotoTime = currentTime;
+    captureAndUploadPhoto();
+  }
 }

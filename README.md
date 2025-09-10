@@ -130,7 +130,7 @@ Gather your components and wire them according to the circuit diagram. You will 
     - Ensure the following lines are set correctly:
       ```cpp
       const char* backendUrl = "https://final-green-ai.vercel.app";
-      const char* apiKey = "Green-AI"; // Should match your Vercel ESP_API_KEY
+      const char* deviceId = "ESP_CAM_SMARTGREENHOUSE_001";
       ```
 4.  **Upload to ESP32-CAM**:
     - Select the `AI-Thinker ESP32-CAM` board in the IDE.
