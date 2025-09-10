@@ -252,8 +252,10 @@ function RealTimeMonitoring({ onNewReading }: { onNewReading: (timestamp: string
 function DashboardPageContent() {
   const searchParams = useSearchParams();
   const plantName = searchParams?.get('plantName');
-  const [diagnosis, setDiagnosis] = useState<DiagnosePlantOutput | null>(null);
   const [lastReadingTimestamp, setLastReadingTimestamp] = useState<string | null>(null);
+  
+  // This state is now managed inside DiseaseDiagnosisCard, but we need one for the chatbot
+  const [chatbotDiagnosis, setChatbotDiagnosis] = useState<DiagnosePlantOutput | null>(null);
 
   const isConnected = lastReadingTimestamp ? (new Date().getTime() - new Date(lastReadingTimestamp).getTime()) < CONNECTION_TIMEOUT : false;
 
@@ -279,9 +281,8 @@ function DashboardPageContent() {
             </div>
             <div className="row-start-1 xl:row-auto animate-fade-in" style={{ animationDelay: '200ms' }}>
                  <DiseaseDiagnosisCard 
-                    diagnosis={diagnosis} 
-                    onDiagnose={setDiagnosis} 
-                    onNewAutomatedDiagnosis={setLastReadingTimestamp}
+                    onNewDiagnosis={setChatbotDiagnosis} 
+                    onNewAutomatedTimestamp={setLastReadingTimestamp}
                  />
             </div>
         </div>
@@ -301,7 +302,7 @@ function DashboardPageContent() {
             </Card>
         )}
       </main>
-      <AgriChatbot diagnosis={diagnosis} plantName={plantName || undefined} />
+      <AgriChatbot diagnosis={chatbotDiagnosis} plantName={plantName || undefined} />
     </div>
   );
 }
@@ -313,5 +314,3 @@ export default function DashboardPage() {
         </Suspense>
     )
 }
-
-    

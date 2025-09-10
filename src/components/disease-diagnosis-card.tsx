@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -11,34 +10,24 @@ import type { DiagnosePlantOutput } from '@/ai/types';
 import { Bug, Upload, Leaf, ShieldCheck, ShieldAlert, Clock, Loader2, Camera } from 'lucide-react';
 import Image from 'next/image';
 
-function SubmitButton() {
-  return (
-    <Button type="submit" className="w-full mt-2 transition-transform hover:scale-105">
-      <Bug className="mr-2 h-4 w-4" />
-      Diagnose Plant
-    </Button>
-  );
-}
-
-type DiagnosePlantOutputWithTimestampAndPhoto = DiagnosePlantOutput & { timestamp: string; photoDataUri?: string };
+type DiagnosePlantOutputWithTimestampAndPhoto = DiagnosePlantOutput & { timestamp?: string; photoDataUri?: string };
 
 type DiseaseDiagnosisCardProps = {
-    diagnosis: DiagnosePlantOutput | null;
-    onDiagnose: (diagnosis: DiagnosePlantOutput | null) => void;
-    onNewAutomatedDiagnosis: (timestamp: string) => void;
+    onNewDiagnosis: (diagnosis: DiagnosePlantOutput | null) => void;
+    onNewAutomatedTimestamp: (timestamp: string) => void;
 };
 
 const DEVICE_ID = "ESP_CAM_SMARTGREENHOUSE_001";
 
-export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiagnosis }: DiseaseDiagnosisCardProps) {
+export function DiseaseDiagnosisCard({ onNewDiagnosis, onNewAutomatedTimestamp }: DiseaseDiagnosisCardProps) {
   const { toast } = useToast();
-  const [manualError, setManualError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [automatedDiagnosis, setAutomatedDiagnosis] = useState<DiagnosePlantOutputWithTimestampAndPhoto | null>(null);
-  const [isFetchingAutomated, setIsFetchingAutomated] = useState(true);
+  const [lastDiagnosis, setLastDiagnosis] = useState<DiagnosePlantOutputWithTimestampAndPhoto | null>(null);
+  const [isFetching, setIsFetching] = useState(true);
 
   useEffect(() => {
     const fetchLatestDiagnosis = async () => {
@@ -47,14 +36,15 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
         if (response.ok) {
           const data = await response.json();
           if (data && data.timestamp) {
-            setAutomatedDiagnosis(data);
-            onNewAutomatedDiagnosis(data.timestamp);
+            setLastDiagnosis(data);
+            onNewDiagnosis(data);
+            onNewAutomatedTimestamp(data.timestamp);
           }
         }
       } catch (error) {
         console.error("Failed to fetch automated diagnosis:", error);
       } finally {
-        setIsFetchingAutomated(false);
+        setIsFetching(false);
       }
     };
 
@@ -62,7 +52,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
     const interval = setInterval(fetchLatestDiagnosis, 10000); // Poll every 10 seconds
 
     return () => clearInterval(interval);
-  }, [onNewAutomatedDiagnosis]);
+  }, [onNewDiagnosis, onNewAutomatedTimestamp]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,8 +63,7 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
         setPreviewUrl(reader.result as string);
       };
       reader.readAsDataURL(file);
-      onDiagnose(null);
-      setManualError(null);
+      setError(null);
     }
   };
 
@@ -93,14 +82,14 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
     }
 
     setIsDiagnosing(true);
-    setManualError(null);
-    onDiagnose(null);
+    setError(null);
 
     try {
       const result = await diagnosePlantAction(formData);
-      onDiagnose(result);
+      setLastDiagnosis({ ...result, photoDataUri: previewUrl || undefined });
+      onNewDiagnosis(result);
     } catch (e: any) {
-      setManualError('An error occurred during diagnosis. Please try again.');
+      setError('An error occurred during diagnosis. Please try again.');
       toast({
         variant: 'destructive',
         title: 'Diagnosis Failed',
@@ -113,7 +102,11 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
 
   const triggerFileSelect = () => fileInputRef.current?.click();
 
-  const renderDiagnosisResult = (diag: DiagnosePlantOutput, title: string, photoUri?: string) => (
+  const renderDiagnosisResult = (diag: DiagnosePlantOutputWithTimestampAndPhoto) => {
+    const title = diag.timestamp ? 'Automated Diagnosis' : 'Manual Diagnosis';
+    const photoUri = diag.photoDataUri;
+
+    return (
      <div className="pt-4 space-y-3 text-left">
          <h4 className="font-semibold flex items-center gap-2">
             {diag.isHealthy ? 
@@ -137,7 +130,8 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
             )}
         </div>
       </div>
-  );
+    );
+  };
 
 
   return (
@@ -147,16 +141,16 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
           <Camera className="text-primary" />
           Disease Status
         </CardTitle>
-        <CardDescription>Automatic health analysis from ESP32.</CardDescription>
+        <CardDescription>Latest health analysis.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
-        {isFetchingAutomated ? (
+        {isFetching ? (
            <div className="flex items-center justify-center pt-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Checking for diagnosis...</p>
           </div>
-        ) : automatedDiagnosis ? (
-            renderDiagnosisResult(automatedDiagnosis, 'Automated Diagnosis', automatedDiagnosis.photoDataUri)
+        ) : lastDiagnosis ? (
+            renderDiagnosisResult(lastDiagnosis)
         ) : (
             <>
                 <Clock className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
@@ -182,27 +176,24 @@ export function DiseaseDiagnosisCard({ diagnosis, onDiagnose, onNewAutomatedDiag
               {previewUrl ? 'Change Photo' : 'Upload Photo'}
             </Button>
 
-            {previewUrl && !diagnosis && (
-              <div className="mt-4 aspect-video w-full overflow-hidden rounded-md border">
-                <Image src={previewUrl} alt="Plant preview" width={300} height={200} className="h-full w-full object-cover" />
+            {previewUrl && (
+              <div className="mt-4">
+                {isDiagnosing ? (
+                  <div className="flex items-center justify-center pt-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4 text-muted-foreground">Diagnosing...</p>
+                  </div>
+                ) : (
+                   <Button type="submit" className="w-full mt-2 transition-transform hover:scale-105">
+                     <Bug className="mr-2 h-4 w-4" />
+                     Diagnose Plant
+                   </Button>
+                )}
               </div>
             )}
-            
-            {previewUrl && !isDiagnosing && !diagnosis && <SubmitButton />}
           </form>
         </div>
-
-
-        {isDiagnosing && (
-          <div className="flex items-center justify-center pt-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Diagnosing...</p>
-          </div>
-        )}
-        
-        {manualError && <p className="text-destructive text-sm font-medium">{manualError}</p>}
-
-        {diagnosis && renderDiagnosisResult(diagnosis, 'Manual Diagnosis Result', previewUrl || undefined)}
+        {error && <p className="text-destructive text-sm font-medium">{error}</p>}
       </CardContent>
     </Card>
   );
