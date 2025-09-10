@@ -126,6 +126,8 @@ const DUMMY_READING: Reading = {
 
 function RealTimeMonitoring({ onNewReading }: { onNewReading: (timestamp: string) => void }) {
     const [latestReading, setLatestReading] = useState<Reading>(DUMMY_READING);
+    const [irrigationOn, setIrrigationOn] = useState(true);
+    const [nightLightOn, setNightLightOn] = useState(false);
 
     useEffect(() => {
         const fetchLatestReading = async () => {
@@ -144,18 +146,36 @@ function RealTimeMonitoring({ onNewReading }: { onNewReading: (timestamp: string
                 console.error('Failed to fetch readings:', error);
             }
         };
-
+        
+        const fetchControls = async () => {
+            try {
+                const response = await fetch(`/api/controls/${DEVICE_ID}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && typeof data.autoIrrigation === 'boolean') {
+                        setIrrigationOn(data.autoIrrigation);
+                    }
+                    if (data && typeof data.nightLight === 'boolean') {
+                        setNightLightOn(data.nightLight);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch controls:', error);
+            }
+        };
+        
         fetchLatestReading(); 
+        fetchControls();
         const interval = setInterval(fetchLatestReading, 5000); 
 
         return () => clearInterval(interval);
     }, [onNewReading]);
 
-    const [irrigationOn, setIrrigationOn] = useState(true);
-    const [nightLightOn, setNightLightOn] = useState(false);
 
     const handleControlChange = async (control: 'autoIrrigation' | 'nightLight', value: boolean) => {
-        const payload = control === 'autoIrrigation' ? { autoIrrigation: value } : { nightLight: value };
+        const currentControls = { autoIrrigation: irrigationOn, nightLight: nightLightOn };
+        const payload = { ...currentControls, [control]: value };
+        
         if (control === 'autoIrrigation') {
             setIrrigationOn(value);
         } else {
@@ -293,3 +313,5 @@ export default function DashboardPage() {
         </Suspense>
     )
 }
+
+    

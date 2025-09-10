@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Droplets, Thermometer, Lightbulb, Wind, Leaf, Pencil, Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { GeneratePlantConditionsOutput } from '@/ai/flows/generate-plant-conditions';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -17,6 +17,26 @@ export function ConditionsDashboard({ conditions, plantName }: { conditions: Gen
   const [isEditing, setIsEditing] = useState(false);
   const [editableConditions, setEditableConditions] = useState(conditions);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchThresholds = async () => {
+      try {
+        const response = await fetch(`/api/thresholds?deviceId=${DEVICE_ID}`);
+        if (response.ok) {
+          const savedThresholds = await response.json();
+          if (savedThresholds) {
+            setEditableConditions(prev => ({
+              ...prev,
+              ...savedThresholds,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch thresholds:', error);
+      }
+    };
+    fetchThresholds();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -151,3 +171,5 @@ export function ConditionsSkeleton() {
     </div>
   );
 }
+
+    
