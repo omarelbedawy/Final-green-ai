@@ -1,15 +1,15 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wifi } from "lucide-react";
 import Link from "next/link";
 
-export default function ConnectDevicePage({
+export default async function ConnectDevicePage({
     searchParams,
   }: {
-    searchParams?: { [key: string]: string | undefined };
+    searchParams: Promise<{ [key: string]: string | undefined }>;
   }) {
-  const plantName = searchParams?.plantName || "your plant";
+  const params = await searchParams;
+  const plantName = params?.plantName || "your plant";
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
