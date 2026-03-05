@@ -1,8 +1,6 @@
-import type {NextConfig} from 'next';
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  serverExternalPackages: ['@opentelemetry/instrumentation', 'genkit', '@genkit-ai/core'], // <-- ضيف السطر ده هنا
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  serverExternalPackages: ['@opentelemetry/instrumentation', 'genkit', '@genkit-ai/core'],
   typescript: {
     ignoreBuildErrors: true,
   },
